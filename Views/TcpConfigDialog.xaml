@@ -1,0 +1,26 @@
+﻿<Window x:Class="ModelHotSwapWorkflow.Views.TcpConfigDialog"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="TCP配置" Width="350" Height="280" WindowStartupLocation="CenterOwner"
+        ResizeMode="NoResize">
+    <StackPanel Margin="15">
+        <RadioButton x:Name="ServerRadio" Content="服务端模式" GroupName="Role" Margin="0,0,0,5" Checked="Role_Checked"/>
+        <RadioButton x:Name="ClientRadio" Content="客户端模式" GroupName="Role" Margin="0,0,0,15" Checked="Role_Checked"/>
+        <StackPanel Orientation="Horizontal" Margin="0,5">
+            <TextBlock Text="地址:" Width="60" VerticalAlignment="Center"/>
+            <TextBox x:Name="AddressBox" Width="200" Text="127.0.0.1"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Margin="0,5">
+            <TextBlock Text="端口:" Width="60" VerticalAlignment="Center"/>
+            <TextBox x:Name="PortBox" Width="200" Text="8888"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" Margin="0,5">
+            <TextBlock Text="手动命令:" Width="60" VerticalAlignment="Center"/>
+            <TextBox x:Name="ManualCommandBox" Width="200" Text="1"/>
+        </StackPanel>
+        <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
+            <Button Content="确定" Width="70" Margin="5" Click="Ok_Click"/>
+            <Button Content="取消" Width="70" Margin="5" Click="Cancel_Click"/>
+        </StackPanel>
+    </StackPanel>
+</Window>

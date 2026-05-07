@@ -1,0 +1,423 @@
+{
+  "runtimeTarget": {
+    "name": ".NETCoreApp,Version=v8.0",
+    "signature": ""
+  },
+  "compilationOptions": {},
+  "targets": {
+    ".NETCoreApp,Version=v8.0": {
+      "Microsoft.ML.OnnxRuntime.Gpu/1.25.1": {
+        "dependencies": {
+          "Microsoft.ML.OnnxRuntime.Gpu.Linux": "1.25.1",
+          "Microsoft.ML.OnnxRuntime.Gpu.Windows": "1.25.1",
+          "Microsoft.ML.OnnxRuntime.Managed": "1.25.1"
+        }
+      },
+      "Microsoft.ML.OnnxRuntime.Gpu.Linux/1.25.1": {
+        "dependencies": {
+          "Microsoft.ML.OnnxRuntime.Managed": "1.25.1"
+        },
+        "runtimeTargets": {
+          "runtimes/linux-x64/native/libonnxruntime.so": {
+            "rid": "linux-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/linux-x64/native/libonnxruntime_providers_cuda.so": {
+            "rid": "linux-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/linux-x64/native/libonnxruntime_providers_shared.so": {
+            "rid": "linux-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/linux-x64/native/libonnxruntime_providers_tensorrt.so": {
+            "rid": "linux-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "Microsoft.ML.OnnxRuntime.Gpu.Windows/1.25.1": {
+        "dependencies": {
+          "Microsoft.ML.OnnxRuntime.Managed": "1.25.1"
+        },
+        "runtimeTargets": {
+          "runtimes/win-x64/native/onnxruntime.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "1.25.26.427"
+          },
+          "runtimes/win-x64/native/onnxruntime.lib": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/onnxruntime_providers_cuda.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "1.25.26.427"
+          },
+          "runtimes/win-x64/native/onnxruntime_providers_cuda.lib": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/onnxruntime_providers_shared.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "1.25.26.427"
+          },
+          "runtimes/win-x64/native/onnxruntime_providers_shared.lib": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/onnxruntime_providers_tensorrt.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "1.25.26.427"
+          },
+          "runtimes/win-x64/native/onnxruntime_providers_tensorrt.lib": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          }
+        }
+      },
+      "Microsoft.ML.OnnxRuntime.Managed/1.25.1": {
+        "dependencies": {
+          "System.Memory": "4.6.3",
+          "System.Numerics.Tensors": "9.0.0"
+        },
+        "runtime": {
+          "lib/net8.0/Microsoft.ML.OnnxRuntime.dll": {
+            "assemblyVersion": "1.25.1.0",
+            "fileVersion": "1.25.1.0"
+          }
+        }
+      },
+      "Microsoft.Win32.SystemEvents/10.0.7": {
+        "runtime": {
+          "lib/net8.0/Microsoft.Win32.SystemEvents.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.726.21808"
+          }
+        },
+        "runtimeTargets": {
+          "runtimes/win/lib/net8.0/Microsoft.Win32.SystemEvents.dll": {
+            "rid": "win",
+            "assetType": "runtime",
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.726.21808"
+          }
+        }
+      },
+      "OpenCvSharp4/4.13.0.20260330": {
+        "dependencies": {
+          "System.Memory": "4.6.3"
+        },
+        "runtime": {
+          "lib/net8.0/OpenCvSharp.dll": {
+            "assemblyVersion": "4.13.0.0",
+            "fileVersion": "4.13.0.0"
+          }
+        }
+      },
+      "OpenCvSharp4.Extensions/4.13.0.20260330": {
+        "dependencies": {
+          "OpenCvSharp4": "4.13.0.20260330",
+          "System.Drawing.Common": "10.0.7"
+        },
+        "runtime": {
+          "lib/net8.0/OpenCvSharp.Extensions.dll": {
+            "assemblyVersion": "4.13.0.0",
+            "fileVersion": "4.13.0.0"
+          }
+        }
+      },
+      "OpenCvSharp4.runtime.win/4.13.0.20260302": {
+        "runtimeTargets": {
+          "runtimes/win-x64/native/OpenCvSharpExtern.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "0.0.0.0"
+          },
+          "runtimes/win-x64/native/opencv_videoio_ffmpeg4130_64.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "2025.12.0.0"
+          }
+        }
+      },
+      "OpenCvSharp4.Windows/4.13.0.20260302": {
+        "dependencies": {
+          "OpenCvSharp4": "4.13.0.20260330",
+          "OpenCvSharp4.WpfExtensions": "4.13.0.20260302",
+          "OpenCvSharp4.runtime.win": "4.13.0.20260302"
+        }
+      },
+      "OpenCvSharp4.WpfExtensions/4.13.0.20260302": {
+        "dependencies": {
+          "OpenCvSharp4": "4.13.0.20260330",
+          "System.Drawing.Common": "10.0.7"
+        },
+        "runtime": {
+          "lib/net8.0-windows7.0/OpenCvSharp.WpfExtensions.dll": {
+            "assemblyVersion": "4.13.0.0",
+            "fileVersion": "4.13.0.0"
+          }
+        }
+      },
+      "Serilog/4.3.1": {
+        "runtime": {
+          "lib/net8.0/Serilog.dll": {
+            "assemblyVersion": "4.3.0.0",
+            "fileVersion": "4.3.0.0"
+          }
+        }
+      },
+      "Serilog.Sinks.Console/6.1.1": {
+        "dependencies": {
+          "Serilog": "4.3.1"
+        },
+        "runtime": {
+          "lib/net8.0/Serilog.Sinks.Console.dll": {
+            "assemblyVersion": "6.1.1.0",
+            "fileVersion": "6.1.1.0"
+          }
+        }
+      },
+      "Serilog.Sinks.File/5.0.0": {
+        "dependencies": {
+          "Serilog": "4.3.1"
+        },
+        "runtime": {
+          "lib/net5.0/Serilog.Sinks.File.dll": {
+            "assemblyVersion": "5.0.0.0",
+            "fileVersion": "5.0.0.0"
+          }
+        }
+      },
+      "Serilog.Sinks.File.LatestFile/1.0.0": {
+        "dependencies": {
+          "Serilog.Sinks.File": "5.0.0"
+        },
+        "runtime": {
+          "lib/net6.0/Serilog.Sinks.File.LatestFile.dll": {
+            "assemblyVersion": "1.0.0.0",
+            "fileVersion": "1.0.0.0"
+          }
+        }
+      },
+      "System.Drawing.Common/10.0.7": {
+        "dependencies": {
+          "Microsoft.Win32.SystemEvents": "10.0.7"
+        },
+        "runtime": {
+          "lib/net8.0/System.Drawing.Common.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.726.21808"
+          },
+          "lib/net8.0/System.Private.Windows.Core.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.726.21808"
+          },
+          "lib/net8.0/System.Private.Windows.GdiPlus.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.726.21808"
+          }
+        }
+      },
+      "System.IO.Pipelines/10.0.6": {
+        "runtime": {
+          "lib/net8.0/System.IO.Pipelines.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.626.17701"
+          }
+        }
+      },
+      "System.Memory/4.6.3": {},
+      "System.Numerics.Tensors/9.0.0": {
+        "runtime": {
+          "lib/net8.0/System.Numerics.Tensors.dll": {
+            "assemblyVersion": "9.0.0.0",
+            "fileVersion": "9.0.24.52809"
+          }
+        }
+      },
+      "System.Text.Encodings.Web/10.0.6": {
+        "runtime": {
+          "lib/net8.0/System.Text.Encodings.Web.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.626.17701"
+          }
+        },
+        "runtimeTargets": {
+          "runtimes/browser/lib/net8.0/System.Text.Encodings.Web.dll": {
+            "rid": "browser",
+            "assetType": "runtime",
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.626.17701"
+          }
+        }
+      },
+      "System.Text.Json/10.0.6": {
+        "dependencies": {
+          "System.IO.Pipelines": "10.0.6",
+          "System.Text.Encodings.Web": "10.0.6"
+        },
+        "runtime": {
+          "lib/net8.0/System.Text.Json.dll": {
+            "assemblyVersion": "10.0.0.0",
+            "fileVersion": "10.0.626.17701"
+          }
+        }
+      }
+    }
+  },
+  "libraries": {
+    "Microsoft.ML.OnnxRuntime.Gpu/1.25.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-q/1zUC3eGGNbI6MboiP87vz63Cy0faBKMfTOj22Tdzm+IoDGffdbFsSpKC7V4NCO1xsn3ibZ0w+4kctSqpfn3w==",
+      "path": "microsoft.ml.onnxruntime.gpu/1.25.1",
+      "hashPath": "microsoft.ml.onnxruntime.gpu.1.25.1.nupkg.sha512"
+    },
+    "Microsoft.ML.OnnxRuntime.Gpu.Linux/1.25.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-ojjgdQUUVA5/lGfbwDEROGI8iIO+EuKPB4g3HPFecTmtV7tafiY7PxCRR9XxbbwOXd0F4mBZplob/UogDNOAYA==",
+      "path": "microsoft.ml.onnxruntime.gpu.linux/1.25.1",
+      "hashPath": "microsoft.ml.onnxruntime.gpu.linux.1.25.1.nupkg.sha512"
+    },
+    "Microsoft.ML.OnnxRuntime.Gpu.Windows/1.25.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-bePg+HIys8ydrd2/Vi2wQHbUnxYYWA+iIZk9cVok6zavcfDPk1s+JiOK9IMdoIsU4dOsGEoHsdwF7NUn8O4Fcg==",
+      "path": "microsoft.ml.onnxruntime.gpu.windows/1.25.1",
+      "hashPath": "microsoft.ml.onnxruntime.gpu.windows.1.25.1.nupkg.sha512"
+    },
+    "Microsoft.ML.OnnxRuntime.Managed/1.25.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-Jz9UuzAWMFHrH0Gsqx+6aoxTYXeaqIOr+5SOxEhMDKCLmZKVoQo/dazQ8oeiIVy8CzFFfU0vI6vamv5xtc6ApQ==",
+      "path": "microsoft.ml.onnxruntime.managed/1.25.1",
+      "hashPath": "microsoft.ml.onnxruntime.managed.1.25.1.nupkg.sha512"
+    },
+    "Microsoft.Win32.SystemEvents/10.0.7": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-yRy88RjP9RlFxiaxwkGSh5e7lhSRCUaSwYW323ssK85XTm13b3y65Yp8HuURXNnxGQGo9L4Bz19aQAbrfTyJqA==",
+      "path": "microsoft.win32.systemevents/10.0.7",
+      "hashPath": "microsoft.win32.systemevents.10.0.7.nupkg.sha512"
+    },
+    "OpenCvSharp4/4.13.0.20260330": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-fCoLdwfQfiBKpaDJNE8R48mXlwaMauvbHdX0q12Zs8+HnKQvUu6Ep0zQTSSVXv2hEvOGPZMJKepOXuWJDoLaTA==",
+      "path": "opencvsharp4/4.13.0.20260330",
+      "hashPath": "opencvsharp4.4.13.0.20260330.nupkg.sha512"
+    },
+    "OpenCvSharp4.Extensions/4.13.0.20260330": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-t838BwiL+FNmAq9CFYG6hbbcviicrURqWFXhIC3YSv1EGzXjl21N3BfCHtmjixBMvST++JFjoruVseTBgkjzGQ==",
+      "path": "opencvsharp4.extensions/4.13.0.20260330",
+      "hashPath": "opencvsharp4.extensions.4.13.0.20260330.nupkg.sha512"
+    },
+    "OpenCvSharp4.runtime.win/4.13.0.20260302": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-VC2n9CVZQvAm+p0NXW077e/MGkDBraT3ye4FdInRPpxTVK64DwGnLuIncS8mwrkVcKhqh82/KgcDgKXNWDndAA==",
+      "path": "opencvsharp4.runtime.win/4.13.0.20260302",
+      "hashPath": "opencvsharp4.runtime.win.4.13.0.20260302.nupkg.sha512"
+    },
+    "OpenCvSharp4.Windows/4.13.0.20260302": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-w1ERU3njYJRCxM1wdkt7Gg9tD7NJE4J2jSuYX1YD9nrVaOTZl69gsr+wfPH62vKlwg9gd4wDIGN4VLfAxGL73A==",
+      "path": "opencvsharp4.windows/4.13.0.20260302",
+      "hashPath": "opencvsharp4.windows.4.13.0.20260302.nupkg.sha512"
+    },
+    "OpenCvSharp4.WpfExtensions/4.13.0.20260302": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-CqKYxZlfPlL+Em/GCqa00KJqpMlu/hdZYMR/ldovrKE6A7b0xCO7PZTtB/mQBd/FvENmwRp4R1R0T/Uqw17RfQ==",
+      "path": "opencvsharp4.wpfextensions/4.13.0.20260302",
+      "hashPath": "opencvsharp4.wpfextensions.4.13.0.20260302.nupkg.sha512"
+    },
+    "Serilog/4.3.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-savYe7h5yRlkqBVOwP8cIRDOdqKiPmYCU4W87JH38sBmcKD5EBoXvQIw6bNEvZ/pTe1gsiye3VFCzBsoppGkXQ==",
+      "path": "serilog/4.3.1",
+      "hashPath": "serilog.4.3.1.nupkg.sha512"
+    },
+    "Serilog.Sinks.Console/6.1.1": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-8jbqgjUyZlfCuSTaJk6lOca465OndqOz3KZP6Cryt/IqZYybyBu7GP0fE/AXBzrrQB3EBmQntBFAvMVz1COvAA==",
+      "path": "serilog.sinks.console/6.1.1",
+      "hashPath": "serilog.sinks.console.6.1.1.nupkg.sha512"
+    },
+    "Serilog.Sinks.File/5.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-uwV5hdhWPwUH1szhO8PJpFiahqXmzPzJT/sOijH/kFgUx+cyoDTMM8MHD0adw9+Iem6itoibbUXHYslzXsLEAg==",
+      "path": "serilog.sinks.file/5.0.0",
+      "hashPath": "serilog.sinks.file.5.0.0.nupkg.sha512"
+    },
+    "Serilog.Sinks.File.LatestFile/1.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-HxFHSMY/UmtRZCUxqm9Rw4suTmq2NFrwAVxh0lEZcxNMWZVoHxJMB4uPSI5yj9Jda1Lef7UtzcW1Mdo2ehU9Sw==",
+      "path": "serilog.sinks.file.latestfile/1.0.0",
+      "hashPath": "serilog.sinks.file.latestfile.1.0.0.nupkg.sha512"
+    },
+    "System.Drawing.Common/10.0.7": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-t0dLoUJOFMMyHqwpDuTKVlKVry92yUhf7qwihVT2MUrg3y/ZOHKpij5nb+jb20UT3vc7UlQWQlNmV9NQ5c7aSA==",
+      "path": "system.drawing.common/10.0.7",
+      "hashPath": "system.drawing.common.10.0.7.nupkg.sha512"
+    },
+    "System.IO.Pipelines/10.0.6": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-98dV8iAMdOzlB7iZ8OOJ3Wj/LNMV+x2c0DCM4EyFEz/kEVmB1+49HwnocY703amF2BguoZZXk4t3lPSfbcHOgA==",
+      "path": "system.io.pipelines/10.0.6",
+      "hashPath": "system.io.pipelines.10.0.6.nupkg.sha512"
+    },
+    "System.Memory/4.6.3": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-qdcDOgnFZY40+Q9876JUHnlHu7bosOHX8XISRoH94fwk6hgaeQGSgfZd8srWRZNt5bV9ZW2TljcegDNxsf+96A==",
+      "path": "system.memory/4.6.3",
+      "hashPath": "system.memory.4.6.3.nupkg.sha512"
+    },
+    "System.Numerics.Tensors/9.0.0": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-hyJB4UlpAi19Xr9AXzu2NuagKC4lPfHObNMEAA0HmqFz2rX7wKgzeYzO/jM/eBHDhnUGFFEjk5cOoJaxqg5J4A==",
+      "path": "system.numerics.tensors/9.0.0",
+      "hashPath": "system.numerics.tensors.9.0.0.nupkg.sha512"
+    },
+    "System.Text.Encodings.Web/10.0.6": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-o7zWD39jHesxpHyMSWAf+CjM+NaEIV49IJ8tasAsnaVkRcLP33+5aobgxeKLJRLQQfeciO7BbW5vXCUMzPoU6w==",
+      "path": "system.text.encodings.web/10.0.6",
+      "hashPath": "system.text.encodings.web.10.0.6.nupkg.sha512"
+    },
+    "System.Text.Json/10.0.6": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-eU/JSsGWpQPE+rkBJjFjsmtaPsu1kCLqFYeW3NS715+z/dP2/BsCl6R7BFGcjhg+rm5WHblllC3p7QS+sS3HtA==",
+      "path": "system.text.json/10.0.6",
+      "hashPath": "system.text.json.10.0.6.nupkg.sha512"
+    }
+  }
+}

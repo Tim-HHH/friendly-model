@@ -1,0 +1,29 @@
+{
+  "version": 2,
+  "dgSpecHash": "101eDTRctCU=",
+  "success": true,
+  "projectFilePath": "D:\\desktop2025\\Code\\ModelHotSwapWorkflow\\ModelHotSwapWorkflow\\ModelHotSwapWorkflow.csproj",
+  "expectedPackageFiles": [
+    "D:\\C#\\NuGetPackages\\microsoft.ml.onnxruntime.gpu\\1.25.1\\microsoft.ml.onnxruntime.gpu.1.25.1.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\microsoft.ml.onnxruntime.gpu.linux\\1.25.1\\microsoft.ml.onnxruntime.gpu.linux.1.25.1.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\microsoft.ml.onnxruntime.gpu.windows\\1.25.1\\microsoft.ml.onnxruntime.gpu.windows.1.25.1.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\microsoft.ml.onnxruntime.managed\\1.25.1\\microsoft.ml.onnxruntime.managed.1.25.1.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\microsoft.win32.systemevents\\10.0.7\\microsoft.win32.systemevents.10.0.7.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\opencvsharp4\\4.13.0.20260330\\opencvsharp4.4.13.0.20260330.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\opencvsharp4.extensions\\4.13.0.20260330\\opencvsharp4.extensions.4.13.0.20260330.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\opencvsharp4.runtime.win\\4.13.0.20260302\\opencvsharp4.runtime.win.4.13.0.20260302.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\opencvsharp4.windows\\4.13.0.20260302\\opencvsharp4.windows.4.13.0.20260302.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\opencvsharp4.wpfextensions\\4.13.0.20260302\\opencvsharp4.wpfextensions.4.13.0.20260302.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\serilog\\4.3.1\\serilog.4.3.1.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\serilog.sinks.console\\6.1.1\\serilog.sinks.console.6.1.1.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\serilog.sinks.file\\5.0.0\\serilog.sinks.file.5.0.0.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\serilog.sinks.file.latestfile\\1.0.0\\serilog.sinks.file.latestfile.1.0.0.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\system.drawing.common\\10.0.7\\system.drawing.common.10.0.7.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\system.io.pipelines\\10.0.6\\system.io.pipelines.10.0.6.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\system.memory\\4.6.3\\system.memory.4.6.3.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\system.numerics.tensors\\9.0.0\\system.numerics.tensors.9.0.0.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\system.text.encodings.web\\10.0.6\\system.text.encodings.web.10.0.6.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\system.text.json\\10.0.6\\system.text.json.10.0.6.nupkg.sha512"
+  ],
+  "logs": []
+}

@@ -1,0 +1,32 @@
+[
+  {
+    "model_path": "C:\\YourPath\\your_model.onnx", 
+    "task_type": "Detection",
+    "input_config": {
+      "input_width": 640,
+      "input_height": 640,
+      "color_channels": 3
+    },
+    "output_config": [
+      {
+        "class_id": 0,
+        "min_confidence": 0.25,
+        "nms_iou_threshold": 0.45,
+        "max_detections": 300
+      }
+    ],
+    "class_definitions": [
+      {
+        "class_id": 0,
+        "class_name": "NG",
+        "display_color": { "r": 255, "g": 0, "b": 0 }
+      }
+    ],
+    "performance_settings": {
+      "enable_gpu_acceleration": true,
+      "gpu_device_id": 0,
+      "warmup_iterations": 1,
+      "cpu_threads": 4
+    }
+  }
+]

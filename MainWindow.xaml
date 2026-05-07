@@ -1,0 +1,77 @@
+﻿<Window x:Class="ModelHotSwapWorkflow.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="模型热插拔工作流" Height="800" Width="1300"
+        WindowStartupLocation="CenterScreen">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <!-- 工具栏 -->
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="150"/>
+            <!-- 日志区 -->
+        </Grid.RowDefinitions>
+
+        <!-- 顶部工具栏（直接平铺所有按钮） -->
+        <ToolBar Grid.Row="0" Background="#F0F0F0">
+            <Button Content="📤 导出" Margin="2" Click="Export_Click" ToolTip="导出工作流"/>
+            <Button Content="📥 导入" Margin="2" Click="Import_Click" ToolTip="导入工作流"/>
+            <Separator/>
+            <Button Content="▶ 运行" Margin="2" Click="RunWorkflow_Click" ToolTip="运行工作流 (F5)"/>
+            <Button Content="🗑️ 清空" Margin="2" Click="ClearCanvas_Click" ToolTip="清空画布"/>
+            <Separator/>
+            <RadioButton Content="手动" Margin="5,0,2,0" IsChecked="True" GroupName="RunMode"
+                         Checked="TriggerModeRadio_Unchecked" ToolTip="手动点击运行按钮执行"/>
+            <RadioButton Content="触发" Margin="2,0,5,0" GroupName="RunMode"
+                         Checked="TriggerModeRadio_Checked" Unchecked="TriggerModeRadio_Unchecked" ToolTip="TCP收到消息时自动触发"/>
+            <Separator/>
+            <Button Content="❓ 关于" Margin="2" Click="About_Click" ToolTip="关于"/>
+        </ToolBar>
+
+        <!-- 主体区域：工具箱 + 画布 + 图像 -->
+        <Grid Grid.Row="1">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition Width="200"/>
+                <ColumnDefinition Width="*"/>
+                <ColumnDefinition Width="360"/>
+            </Grid.ColumnDefinitions>
+
+            <!-- 左侧工具箱 -->
+            <Border Grid.Column="0" Background="#2D2D30">
+                <ListBox x:Name="ToolboxList" Background="Transparent" BorderThickness="0"
+                         FontSize="13" Foreground="White" Padding="5" AllowDrop="True"
+                         PreviewMouseLeftButtonDown="ToolboxList_PreviewMouseLeftButtonDown"
+                         PreviewMouseDoubleClick="ToolboxList_PreviewMouseDoubleClick">
+                    <ListBoxItem Tag="TcpCommand">📡 TCP命令接收</ListBoxItem>
+                    <ListBoxItem Tag="Branch">🔀 分支判断</ListBoxItem>
+                    <ListBoxItem Tag="ImageSource">📷 图像源</ListBoxItem>
+                    <ListBoxItem Tag="ModelNode">🧠 模型推理</ListBoxItem>
+                    <ListBoxItem Tag="DisplayNode">🖼️ 结果显示</ListBoxItem>
+                    <ListBoxItem Tag="Action">⚡ Log打印</ListBoxItem>
+                </ListBox>
+            </Border>
+
+            <!-- 中间画布 -->
+            <Canvas x:Name="WorkflowCanvas" Grid.Column="1" Background="#F5F5F5"
+                AllowDrop="True" Drop="WorkflowCanvas_Drop"
+                MouseLeftButtonDown="WorkflowCanvas_MouseLeftButtonDown"/>
+
+            <!-- 右侧图像显示区 -->
+            <Border Grid.Column="2" Background="White" BorderBrush="#CCC" BorderThickness="1">
+                <Grid>
+                    <Grid.RowDefinitions>
+                        <RowDefinition Height="Auto"/>
+                        <RowDefinition Height="*"/>
+                    </Grid.RowDefinitions>
+                    <TextBlock Grid.Row="0" Text="推理结果" FontWeight="Bold" Margin="10,5" HorizontalAlignment="Center"/>
+                    <Image x:Name="ResultImage" Grid.Row="1" Stretch="Uniform" Margin="5"/>
+                </Grid>
+            </Border>
+        </Grid>
+
+        <!-- 底部日志区 -->
+        <RichTextBox x:Name="LogTextBox" Grid.Row="2" Grid.ColumnSpan="3"
+                     Background="#1E1E1E" Foreground="White" FontFamily="Consolas" FontSize="11"
+                     IsReadOnly="True" VerticalScrollBarVisibility="Auto"/>
+    </Grid>
+</Window>
