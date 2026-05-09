@@ -20,45 +20,66 @@ namespace ModelHotSwapWorkflow
 {
     public partial class MainWindow : Window
     {
+        // 1. 基础数据成员（每个只准留一个！）
         private Dictionary<string, NodeBase> nodes = new Dictionary<string, NodeBase>();
         private Dictionary<NodeControl, NodeBase> controlMap = new Dictionary<NodeControl, NodeBase>();
         private List<Connection> connections = new List<Connection>();
-
-        private NodeControl selectedNodeControl = null;
-        private SelectableLine selectedLine = null;   // 连线选中已在之前实现
-
         private List<SelectableLine> selectableLines = new List<SelectableLine>();
-        
 
-        
-        private NodeControl connectionStartControl;
-        private bool isConnectingFromOutput;
-        private Line tempLine;
+        // 2. 交互状态成员
+        private NodeControl selectedNodeControl = null;
+        private SelectableLine selectedLine = null;
 
+        // 3. 【核心连线成员】 - 彻底清理后的版本，绝不再报错
+        private NodeControl connectionStartControl; // 连线起点节点
+        private SelectableLine tempLine;           // 正在拉动的那根发光线
+        private string currentSourcePin;           // 记录起始引脚（Left/Right等）
+        private Point connectionStartPoint;        // 记录起始坐标
+        private bool isConnectingFromOutput;        // 连线方向逻辑标志
+
+        // 4. 业务引擎成员
         private WorkflowEngine engine;
         private bool isTriggerMode = false;
 
         public MainWindow()
         {
             InitializeComponent();
-            
             Loaded += MainWindow_Loaded;
+            InitializeGlobalTcpNode();
         }
 
         private void TriggerModeRadio_Checked(object sender, RoutedEventArgs e)
         {
             isTriggerMode = true;
-           
-            AddLog("切换到触发模式，TCP命令节点将自动触发工作流");
-            // 重新构建引擎，进入触发模式准备
+            AddLog("切换到触发模式，等待TCP命令...");
+
+            // 【关键绑定步骤】：告诉 TCP 节点收到消息后来找谁
+            var tcpNode = nodes.Values.OfType<TcpCommandNode>().FirstOrDefault();
+            if (tcpNode != null)
+            {
+                tcpNode.MessageReceived -= OnTriggerMessageReceived; // 先解绑，防止重复绑定触发多次
+                tcpNode.MessageReceived += OnTriggerMessageReceived; // 正式绑定！
+            }
+            else
+            {
+                AddLog("警告：未找到全局 TCP 节点，请确保已配置。");
+            }
+
             BuildEngine();
         }
 
         private void TriggerModeRadio_Unchecked(object sender, RoutedEventArgs e)
         {
             isTriggerMode = false;
-            
             AddLog("切换到手动模式");
+
+            // 【关键解绑步骤】：手动模式下，不再处理 TCP 自动触发
+            var tcpNode = nodes.Values.OfType<TcpCommandNode>().FirstOrDefault();
+            if (tcpNode != null)
+            {
+                tcpNode.MessageReceived -= OnTriggerMessageReceived; // 解绑
+            }
+
             BuildEngine();
         }
 
@@ -372,19 +393,23 @@ namespace ModelHotSwapWorkflow
         // 内部清空方法（不重复记录日志）
         private void ClearCanvasInternal()
         {
+            // 1. 停止所有正在运行的 TCP 通讯
             foreach (var node in nodes.Values.OfType<TcpCommandNode>())
                 node.Stop();
 
-            // 清除画布上所有连线视觉元素
+            // 2. 【核心修复】：直接移除整个连线零件
+            // 因为现在 SelectableLine 是个整体，不再有 VisualPath 这些内部零件暴露在外面
             foreach (var sl in selectableLines)
             {
-                WorkflowCanvas.Children.Remove(sl.VisualPath);
-                WorkflowCanvas.Children.Remove(sl.HitTestPath);
+                WorkflowCanvas.Children.Remove(sl); // 直接移除这根“发光曲线”
             }
+
+            // 3. 清理账本
             selectableLines.Clear();
             selectedLine = null;
             selectedNodeControl = null;
 
+            // 4. 清空画布上的所有其余节点和数据
             WorkflowCanvas.Children.Clear();
             nodes.Clear();
             controlMap.Clear();
@@ -427,15 +452,63 @@ namespace ModelHotSwapWorkflow
         private void BuildEngine()
         {
             // 停止旧的触发监听
-            if (engine != null)
-            {
-                engine.StopTriggerMonitoring();
-            }
             engine = new WorkflowEngine(nodes, connections, AddLog);
-            if (isTriggerMode)
+        }
+
+        private void OnTriggerMessageReceived(string message)
+        {
+            if (!isTriggerMode) return;
+
+            // 1. 获取当前画布上的全局 TCP 节点
+            var tcpNode = nodes.Values.OfType<TcpCommandNode>().FirstOrDefault();
+            if (tcpNode == null) return;
+
+            string cmd = message.Trim();
+            AddLog($"收到TCP原始信号: {cmd}");
+
+            // 2. 查找指令映射
+            if (tcpNode.CommandMapping.TryGetValue(cmd, out string targetSourceId))
             {
-                engine.StartTriggerMode(OnWorkflowTriggered);
-                AddLog("触发模式已就绪，等待TCP命令...");
+                AddLog($"匹配成功！指令 [{cmd}] 触发路径起点 ID: {targetSourceId}");
+
+                // 3. 调用引擎启动独立线程路径
+                if (engine == null) BuildEngine();
+                _ = engine.ExecuteSourcePathAsync(targetSourceId);
+            }
+            else
+            {
+                AddLog($"收到未定义指令: {cmd}，跳过处理。");
+            }
+        }
+
+
+        private void OpenTcpMapping_Click(object sender, RoutedEventArgs e)
+        {
+            // 获取全局唯一的 TCP 节点
+            var tcpNode = nodes.Values.OfType<TcpCommandNode>().FirstOrDefault();
+
+            if (tcpNode != null)
+            {
+                // 弹出你原来的配置对话框
+                var dialog = new TcpConfigDialog(tcpNode.IsServer, tcpNode.Address, tcpNode.Port, tcpNode.ManualCommand);
+                if (dialog.ShowDialog() == true)
+                {
+                    tcpNode.IsServer = dialog.IsServer;
+                    tcpNode.Address = dialog.Address;
+                    tcpNode.Port = dialog.Port;
+                    tcpNode.ManualCommand = dialog.ManualCommand;
+
+                    AddLog($"全局 TCP 配置已更新: {tcpNode.Port}");
+
+                    // 重启服务
+                    tcpNode.Stop();
+                    _ = tcpNode.StartAsync();
+                }
+            }
+            else
+            {
+                // 如果画布上没有 TCP 节点，由于它是全局工具，我们可以自动创建一个隐藏的节点来管理
+                AddLog("提示：请先在手动模式下运行一次，或检查初始化逻辑。");
             }
         }
 
@@ -594,6 +667,8 @@ namespace ModelHotSwapWorkflow
 
             // 创建对应的UI控件
             var control = new NodeControl(node);
+            // 【关键】：只要方块动了，就执行 UpdateConnections 方法
+            control.OnPositionChanged += (c) => UpdateConnections();
 
             // 订阅控件事件
             control.OnDeleteRequested += DeleteNode;
@@ -620,15 +695,17 @@ namespace ModelHotSwapWorkflow
 
         private void OnNodeSelected(NodeControl control)
         {
-            // 取消之前选中的节点（自己除外）
+            // 取消之前选中的节点
             if (selectedNodeControl != null && selectedNodeControl != control)
                 selectedNodeControl.SetSelected(false);
-            // 取消选中的连线
+
+            // 【关键】：取消之前选中的“新版”连线
             if (selectedLine != null)
             {
-                selectedLine.SetSelected(false);
+                selectedLine.SetSelected(false); // 这一行现在不会报错了
                 selectedLine = null;
             }
+
             selectedNodeControl = control;
             selectedNodeControl.SetSelected(true);
         }
@@ -665,48 +742,48 @@ namespace ModelHotSwapWorkflow
             BuildEngine();
         }
 
+        /// <summary>
+        /// 处理节点的配置请求（双击触发）
+        /// </summary>
         private void ConfigureNode(NodeControl control)
         {
             var node = controlMap[control];
+
+            // 1. 图像源配置
             if (node is ImageSourceNode imgNode)
             {
-                var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "图像文件|*.jpg;*.jpeg;*.png;*.bmp" };
+                // 弹出咱们刚刚写的高级图像源配置对话框
+                var dialog = new Views.ImageSourceConfigDialog(imgNode);
+
+                // ShowDialog 是阻塞式的，会等待您在窗口点击“确定”或“取消”
                 if (dialog.ShowDialog() == true)
                 {
-                    imgNode.ImagePath = dialog.FileName;
-                    imgNode.ConfigDisplay = System.IO.Path.GetFileName(dialog.FileName);
+                    // 配置成功后，同步更新节点上的文字显示
                     control.UpdateConfigDisplay(imgNode.ConfigDisplay);
+                    AddLog($"图像源节点 [{imgNode.Name}] 配置已更新。");
                 }
             }
+            // 2. 模型节点配置（【这里用上了咱们刚刚写的高级专用配置界面】）
             else if (node is ModelNode modelNode)
             {
-                var dialog = new Microsoft.Win32.OpenFileDialog { Filter = "ONNX模型|*.onnx" };
-                if (dialog.ShowDialog() == true)
-                {
-                    modelNode.ModelPath = dialog.FileName;
-                    modelNode.ModelName = System.IO.Path.GetFileNameWithoutExtension(dialog.FileName);
-                    modelNode.ConfigDisplay = $"模型: {modelNode.ModelName}";
-                    control.UpdateConfigDisplay(modelNode.ConfigDisplay);
-                   
-                }
-                // 更新数据源列表（所有图像源和模型节点的名称）
-                var sourceNames = nodes.Values.Where(n => n.OutputType != null && n != node)
+                // 1. 提取所有具备输出能力的节点名称，作为该模型节点的潜在输入源
+                var sourceNames = nodes.Values
+                    .Where(n => n.OutputType != null && n != node)
                     .Select(n => n.Name).ToList();
+
                 modelNode.AvailableDataSources = sourceNames;
-                control.UpdateDataSources(sourceNames);
-            }
-           
-            else if (node is BranchNode branchNode)
-            {
-                var dialog = new BranchConfigDialog(branchNode, this.nodes);
+
+                // 2. 实例化并弹出专业的模型配置对话框
+                var dialog = new Views.ModelConfigDialog(modelNode);
+
                 if (dialog.ShowDialog() == true)
                 {
-                    // 更新显示
-                    var mappings = branchNode.ConditionTargetMap.Select(kv => $"{kv.Key}->{nodes[kv.Value]?.Name}");
-                    branchNode.ConfigDisplay = $"分支: {string.Join(", ", mappings)}";
-                    control.UpdateConfigDisplay(branchNode.ConfigDisplay);
+                    // 配置成功后，同步更新 UI 控件的显示状态
+                    control.UpdateConfigDisplay(modelNode.ConfigDisplay);
+                    AddLog($"模型节点 [{modelNode.Name}] 配置已更新。");
                 }
             }
+            // 3. TCP 命令节点配置
             else if (node is TcpCommandNode tcpCmd)
             {
                 var dialog = new TcpConfigDialog(tcpCmd.IsServer, tcpCmd.Address, tcpCmd.Port, tcpCmd.ManualCommand);
@@ -715,7 +792,7 @@ namespace ModelHotSwapWorkflow
                     tcpCmd.IsServer = dialog.IsServer;
                     tcpCmd.Address = dialog.Address;
                     tcpCmd.Port = dialog.Port;
-                    tcpCmd.ManualCommand = dialog.ManualCommand;  // 新增
+                    tcpCmd.ManualCommand = dialog.ManualCommand;
 
                     string modeText = tcpCmd.IsServer ? $"监听端口:{tcpCmd.Port}" : $"{tcpCmd.Address}:{tcpCmd.Port}";
                     tcpCmd.ConfigDisplay = $"TCP {(tcpCmd.IsServer ? "服务端" : "客户端")} {modeText} | 手动:{tcpCmd.ManualCommand}";
@@ -725,6 +802,7 @@ namespace ModelHotSwapWorkflow
                     _ = tcpCmd.StartAsync();
                 }
             }
+            // 4. 逻辑分支节点配置
             else if (node is BranchNode branch)
             {
                 var dialog = new BranchConfigDialog(branch, this.nodes);
@@ -735,6 +813,7 @@ namespace ModelHotSwapWorkflow
                     control.UpdateConfigDisplay(branch.ConfigDisplay);
                 }
             }
+            // 5. 动作节点配置
             else if (node is ActionNode actionNode)
             {
                 var dialog = new ActionConfigDialog(actionNode);
@@ -746,37 +825,41 @@ namespace ModelHotSwapWorkflow
             }
         }
 
-        
+
 
         private void TempLineMouseMove(object sender, MouseEventArgs e)
         {
-            if (tempLine != null && connectionStartControl != null)
+            if (tempLine != null)
             {
-                Point end = e.GetPosition(WorkflowCanvas);
-                tempLine.X2 = end.X;
-                tempLine.Y2 = end.Y;
+                // 获取鼠标现在的坐标
+                Point currentMousePos = e.GetPosition(WorkflowCanvas);
+
+                // 【核心修复】：不再说 X2、Y2，直接用 UpdatePath 
+                tempLine.UpdatePath(connectionStartPoint, currentMousePos);
             }
         }
 
 
-        private string currentSourcePin;  // 新增字段
+       
 
         public void StartConnection(NodeControl control, string pin)
         {
             connectionStartControl = control;
             currentSourcePin = pin;
-            // 绘制临时线（从起始引脚位置开始）
-            tempLine = new Line
-            {
-                Stroke = Brushes.Blue,
-                StrokeThickness = 2,
-                StrokeDashArray = new DoubleCollection { 4, 2 }
-            };
-            // 设置临时线的起点为起始引脚的坐标
-            Point start = GetPinPosition(control, pin);
-            tempLine.X1 = start.X;
-            tempLine.Y1 = start.Y;
+
+            // 获取圆点在画布上的精确位置
+            connectionStartPoint = GetPinPosition(control, pin);
+
+            // 1. 造出咱们发光的新线条
+            tempLine = new SelectableLine();
+
+            // 2. 重点：立即让它显示在起点，别去 (0,0) 乱跑
+            tempLine.UpdatePath(connectionStartPoint, connectionStartPoint);
+
+            // 3. 把线放到画布上
             WorkflowCanvas.Children.Add(tempLine);
+
+            // 4. 让鼠标移动和松开事件准备好
             MouseMove += TempLineMouseMove;
             MouseLeftButtonUp += TempLineMouseUp;
         }
@@ -902,64 +985,34 @@ namespace ModelHotSwapWorkflow
 
         private void RedrawAllConnections()
         {
-            // 清除旧连线
-            foreach (var sl in selectableLines)
-            {
-                WorkflowCanvas.Children.Remove(sl.VisualPath);
-                WorkflowCanvas.Children.Remove(sl.HitTestPath);
-            }
-            selectableLines.Clear();
-            selectedLine = null;
+            // 1. 清掉画布上所有的旧线（通过类型找，更干净）
+            var oldLines = WorkflowCanvas.Children.OfType<SelectableLine>().ToList();
+            foreach (var line in oldLines) WorkflowCanvas.Children.Remove(line);
 
+            selectableLines.Clear();
+
+            // 2. 遍历账本，把每一根线重新画成贝塞尔曲线
             foreach (var conn in connections)
             {
                 var sourceCtrl = controlMap.FirstOrDefault(kv => kv.Value.Id == conn.SourceId).Key;
                 var targetCtrl = controlMap.FirstOrDefault(kv => kv.Value.Id == conn.TargetId).Key;
+
                 if (sourceCtrl == null || targetCtrl == null) continue;
 
-                // 防护：如果控件尺寸无效，跳过此连线（或延迟绘制）
-                if (sourceCtrl.ActualWidth <= 0 || sourceCtrl.ActualHeight <= 0 ||
-                    targetCtrl.ActualWidth <= 0 || targetCtrl.ActualHeight <= 0)
-                {
-                    continue;
-                }
-
-
-                // 获取实际连接点位置（根据 Pin 方向）
+                // 计算起点和终点
                 Point start = GetPinPosition(sourceCtrl, conn.SourcePin);
                 Point end = GetPinPosition(targetCtrl, conn.TargetPin);
 
-                // 创建正交路径
-                var geometry = CreateOrthogonalGeometry(start, end, conn.SourcePin, conn.TargetPin);
-                var path = new System.Windows.Shapes.Path
-                {
-                    Data = geometry,
-                    Stroke = Brushes.Gray,
-                    StrokeThickness = 2,
-                    Fill = Brushes.Transparent
-                };
+                // 创建新零件并画线
+                var curveLine = new SelectableLine();
+                curveLine.UpdatePath(start, end);
 
-                // 命中测试用透明路径（粗线）
-                var hitPath = new System.Windows.Shapes.Path
-                {
-                    Data = geometry,
-                    Stroke = Brushes.Transparent,
-                    StrokeThickness = 10,
-                    Cursor = Cursors.Hand,
-                    Tag = conn
-                };
-                hitPath.MouseLeftButtonDown += Line_MouseLeftButtonDown;
+                // 这里我们要把数据存进去，方便以后选中或删除
+                // 注意：由于 SelectableLine 用户控件现在没有 Connection 属性，
+                // 您可以在 SelectableLine.xaml.cs 里加一个：public Connection Connection { get; set; }
 
-                WorkflowCanvas.Children.Add(path);
-                WorkflowCanvas.Children.Add(hitPath);
-
-                var selectable = new SelectableLine
-                {
-                    Connection = conn,
-                    VisualPath = path,
-                    HitTestPath = hitPath
-                };
-                selectableLines.Add(selectable);
+                WorkflowCanvas.Children.Add(curveLine);
+                selectableLines.Add(curveLine);
             }
         }
 
@@ -1032,22 +1085,55 @@ namespace ModelHotSwapWorkflow
                 selectedLine.SetSelected(true);
         }
 
+        // 这是一段新建的方法，用来生成藏在幕后的全局TCP指挥官
+        private void InitializeGlobalTcpNode()
+        {
+            var tcpNode = new TcpCommandNode(AddLog)
+            {
+                Name = "全局TCP指挥官",
+                X = -1000, // 我们把它藏在画布的外面（负1000的位置），不让它占地方
+                Y = -1000,
+                IsServer = true,
+                Port = 9999
+            };
 
+            // 把这位指挥官登记在系统的花名册（nodes）里
+            nodes[tcpNode.Id] = tcpNode;
+
+            // 让指挥官立刻上岗，开始竖起耳朵听外面的消息
+            _ = tcpNode.StartAsync();
+        }
         public void UpdateConnections()
         {
-            foreach (var sl in selectableLines)
+            // 1. 安全护航：如果账本本身就是空的，直接返回，不干活
+            if (selectableLines == null || controlMap == null) return;
+
+            // 使用 ToList() 是为了防止在遍历时账本发生变化导致程序崩溃
+            foreach (var sl in selectableLines.ToList())
             {
                 var conn = sl.Connection;
-                var sourceCtrl = controlMap.FirstOrDefault(kv => kv.Value.Id == conn.SourceId).Key;
-                var targetCtrl = controlMap.FirstOrDefault(kv => kv.Value.Id == conn.TargetId).Key;
+                if (conn == null) continue;
+
+                // 【核心修复】：在对比 ID 之前，先用 ?. 检查 Value 是否为空
+                // 只有当方块（Value）存在且 ID 匹配时，才把控制权（Key）拿出来
+                var sourceCtrl = controlMap.FirstOrDefault(kv => kv.Value?.Id == conn.SourceId).Key;
+                var targetCtrl = controlMap.FirstOrDefault(kv => kv.Value?.Id == conn.TargetId).Key;
+
+                // 如果连线的两头有一头找不到了（可能刚被删掉），就跳过这根线
                 if (sourceCtrl == null || targetCtrl == null) continue;
 
-                Point start = GetPinPosition(sourceCtrl, conn.SourcePin);
-                Point end = GetPinPosition(targetCtrl, conn.TargetPin);
-                var geometry = CreateOrthogonalGeometry(start, end, conn.SourcePin, conn.TargetPin);
-
-                sl.VisualPath.Data = geometry;
-                sl.HitTestPath.Data = geometry;
+                // 只有确定两个方块都在，才去算位置并画曲线
+                try
+                {
+                    Point start = GetPinPosition(sourceCtrl, conn.SourcePin);
+                    Point end = GetPinPosition(targetCtrl, conn.TargetPin);
+                    sl.UpdatePath(start, end);
+                }
+                catch
+                {
+                    // 如果计算坐标时出错了（比如控件还没加载好），也安静地跳过，不报红字
+                    continue;
+                }
             }
         }
 
@@ -1086,20 +1172,7 @@ namespace ModelHotSwapWorkflow
             }
         }
 
-        private class SelectableLine
-        {
-            public Connection Connection { get; set; }
-            public System.Windows.Shapes.Path VisualPath { get; set; }   // 显示用的路径
-            public System.Windows.Shapes.Path HitTestPath { get; set; }  // 命中测试用的透明路径
-            public bool IsSelected { get; set; }
-
-            public void SetSelected(bool selected)
-            {
-                IsSelected = selected;
-                VisualPath.Stroke = selected ? Brushes.OrangeRed : Brushes.Gray;
-                VisualPath.StrokeThickness = selected ? 4 : 2;
-            }
-        }
+        
 
 
     }

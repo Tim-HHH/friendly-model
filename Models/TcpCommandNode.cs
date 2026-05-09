@@ -22,6 +22,9 @@ namespace ModelHotSwapWorkflow.Models
         private readonly object lockObj = new object();
         private readonly Action<string> logAction;
 
+        // 【新增】指令映射表：Key=TCP指令(如"CH1"), Value=图像源节点ID
+        public Dictionary<string, string> CommandMapping { get; set; } = new Dictionary<string, string>();
+
         public TcpCommandNode(Action<string> logAction = null)
         {
             this.logAction = logAction;

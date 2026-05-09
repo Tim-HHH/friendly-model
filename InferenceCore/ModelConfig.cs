@@ -9,7 +9,14 @@ namespace HMManager
     {
         public override T Read(ref Utf8JsonReader reader, Type typeToConvert, JsonSerializerOptions options)
         {
-            if (reader.TokenType == JsonTokenType.StartObject)
+            // 第一种情况：如果咱们直接写了文字，比如 "Detection" （变聪明了，能直接认出来！）
+            if (reader.TokenType == JsonTokenType.String)
+            {
+                string enumStr = reader.GetString();
+                if (Enum.TryParse(enumStr, true, out T result)) return result;
+            }
+            // 第二种情况：如果是用盒子装起来的旧格式，比如 {"value": "Detection"}
+            else if (reader.TokenType == JsonTokenType.StartObject)
             {
                 string enumValue = null;
                 while (reader.Read())
@@ -24,9 +31,11 @@ namespace HMManager
                         }
                     }
                 }
-                if (enumValue != null && Enum.TryParse(enumValue, out T result)) return result;
+                if (enumValue != null && Enum.TryParse(enumValue, true, out T result)) return result;
             }
-            throw new JsonException($"无法转换枚举 {typeToConvert.Name}");
+
+            // 如果实在看不懂，再报错
+            throw new JsonException($"看不懂这个任务类型啦: {typeToConvert.Name}");
         }
 
         public override void Write(Utf8JsonWriter writer, T value, JsonSerializerOptions options)

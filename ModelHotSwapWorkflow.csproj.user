@@ -13,7 +13,16 @@
     <Compile Update="Views\BranchConfigDialog.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Views\ImageSourceConfigDialog.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Views\ModelConfigDialog.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Views\NodeControl.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Views\SelectableLine.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
     <Compile Update="Views\TcpConfigDialog.xaml.cs">
@@ -30,7 +39,16 @@
     <Page Update="MainWindow.xaml">
       <SubType>Designer</SubType>
     </Page>
+    <Page Update="Views\ImageSourceConfigDialog.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Views\ModelConfigDialog.xaml">
+      <SubType>Designer</SubType>
+    </Page>
     <Page Update="Views\NodeControl.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Views\SelectableLine.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Views\TcpConfigDialog.xaml">

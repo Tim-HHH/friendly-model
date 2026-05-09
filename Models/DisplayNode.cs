@@ -1,47 +1,51 @@
 ﻿using System;
 using System.Drawing;
-using System.Linq;
 using System.Threading.Tasks;
-using System.Windows.Media;
 
 namespace ModelHotSwapWorkflow.Models
 {
+    /// <summary>
+    /// 全局图像数据中转站：用于跨节点共享原始图像与渲染结果
+    /// </summary>
+    public static class GlobalGallery
+    {
+        /// <summary>
+        /// 最近一次推理并绘制了检测框的图像（用于 UI 展示）
+        /// </summary>
+        public static Bitmap? LastDrawnImage { get; set; }
+
+        /// <summary>
+        /// 最近一次从源获取的原始完整图像（用于级联推理的 ROI 裁剪基准）
+        /// </summary>
+        public static Bitmap? LastOriginalImage { get; set; }
+    }
+
+    /// <summary>
+    /// 结果展示节点：负责将最终图像渲染到主界面
+    /// </summary>
     public class DisplayNode : NodeBase
     {
-        public event Action<Image> OnImageUpdated;
         public override string NodeType => "DisplayNode";
-        public override Type InputType => typeof(DetectionResult);
+        public override Type InputType => typeof(object);
         public override Type OutputType => null;
+
+        public event Action<Bitmap>? OnImageUpdated;
 
         public override async Task<object> Process(object input)
         {
-            var result = input as DetectionResult;
-            if (result == null) return null;
-
-            var drawnImage = DrawDetections(result.Image, result.Detections);
-            OnImageUpdated?.Invoke(drawnImage);
-            return null;
-        }
-
-        private Image DrawDetections(Image img, List<Detection> detections)
-        {
-            if (img == null || detections == null || detections.Count == 0) return img;
-            Bitmap bmp = new Bitmap(img);
-            using (System.Drawing.Graphics g = System.Drawing.Graphics.FromImage(bmp))
+            // 优先显示经过模型渲染的带框图像
+            if (GlobalGallery.LastDrawnImage != null)
             {
-                var best = detections.OrderByDescending(d => d.Confidence).FirstOrDefault();
-                if (best?.Bbox?.Length >= 4)
-                {
-                    int w = bmp.Width, h = bmp.Height;
-                    float x1 = best.Bbox[0] * w, y1 = best.Bbox[1] * h;
-                    float x2 = best.Bbox[2] * w, y2 = best.Bbox[3] * h;
-                    using (System.Drawing.Pen pen = new System.Drawing.Pen(System.Drawing.Color.Red, 3))
-                        g.DrawRectangle(pen, x1, y1, x2 - x1, y2 - y1);
-                    using (System.Drawing.Font font = new System.Drawing.Font("微软雅黑", 10))
-                        g.DrawString($"Conf: {best.Confidence:P1}", font, System.Drawing.Brushes.White, x1, y1 - 15);
-                }
+                OnImageUpdated?.Invoke(GlobalGallery.LastDrawnImage);
+                // 展示后清空渲染缓存，但保留原始图像供其他流水线使用
+                GlobalGallery.LastDrawnImage = null;
             }
-            return bmp;
+            else if (input is Bitmap bmp)
+            {
+                OnImageUpdated?.Invoke(bmp);
+            }
+
+            return null;
         }
     }
 }
