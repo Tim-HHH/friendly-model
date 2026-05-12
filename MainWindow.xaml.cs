@@ -14,8 +14,11 @@ using ModelHotSwapWorkflow.Views;
 using System.IO;
 using System.IO.Packaging;
 
+using OpenCvSharp; // 刚才加的 OpenCV 家族
 
-
+using Point = System.Windows.Point;
+using Window = System.Windows.Window; // 【新增】告诉电脑，Window 是界面的窗口
+using Rect = System.Windows.Rect;     // 【新增】告诉电脑，Rect 是界面画图用的矩形
 namespace ModelHotSwapWorkflow
 {
     public partial class MainWindow : Window
@@ -63,18 +66,23 @@ namespace ModelHotSwapWorkflow
         private void TriggerModeRadio_Checked(object sender, RoutedEventArgs e)
         {
             isTriggerMode = true;
-            AddLog("切换到触发模式，等待TCP命令...");
+            AddLog("切换到触发模式，等待外部 (TCP/HTTP) 命令...");
 
-            // 【关键绑定步骤】：告诉 TCP 节点收到消息后来找谁
+            // 【关键绑定步骤】：告诉指挥官收到消息后来找谁处理
             var tcpNode = nodes.Values.OfType<TcpCommandNode>().FirstOrDefault();
             if (tcpNode != null)
             {
+                // 1. 绑定 TCP 事件（老门）
                 tcpNode.MessageReceived -= OnTriggerMessageReceived; // 先解绑，防止重复绑定触发多次
                 tcpNode.MessageReceived += OnTriggerMessageReceived; // 正式绑定！
+
+                // 2. 绑定 HTTP 事件（新门：带图片直传功能）
+                tcpNode.HttpMessageReceived -= OnHttpTriggerReceived; // 先解绑
+                tcpNode.HttpMessageReceived += OnHttpTriggerReceived; // 正式绑定！
             }
             else
             {
-                AddLog("警告：未找到全局 TCP 节点，请确保已配置。");
+                AddLog("警告：未找到全局指挥官节点，请确保已配置。");
             }
 
             BuildEngine();
@@ -85,15 +93,59 @@ namespace ModelHotSwapWorkflow
             isTriggerMode = false;
             AddLog("切换到手动模式");
 
-            // 【关键解绑步骤】：手动模式下，不再处理 TCP 自动触发
+            // 【关键解绑步骤】：手动模式下，不再处理外部自动触发
             var tcpNode = nodes.Values.OfType<TcpCommandNode>().FirstOrDefault();
             if (tcpNode != null)
             {
-                tcpNode.MessageReceived -= OnTriggerMessageReceived; // 解绑
+                // 1. 解绑 TCP 事件
+                tcpNode.MessageReceived -= OnTriggerMessageReceived;
+
+                // 2. 解绑 HTTP 事件
+                tcpNode.HttpMessageReceived -= OnHttpTriggerReceived;
             }
 
             BuildEngine();
         }
+
+
+
+        // 记得文件最上面要有：using OpenCvSharp;
+        private void OnHttpTriggerReceived(string cmd, byte[] imgData)
+        {
+            if (!isTriggerMode) return;
+
+            var tcpNode = nodes.Values.OfType<TcpCommandNode>().FirstOrDefault();
+            if (tcpNode == null) return;
+
+            if (tcpNode.CommandMapping.TryGetValue(cmd.Trim(), out string targetSourceId))
+            {
+                AddLog($"上位机 HTTP 触发！指令 [{cmd}]");
+
+                // 1. 将收到的二进制字节流直接解码为 OpenCV 张量矩阵 (内存操作，极速)
+                Mat tensor = Cv2.ImDecode(imgData, ImreadModes.Color);
+                if (tensor.Empty())
+                {
+                    AddLog("错误：上位机传输的图像数据损坏，无法解码！");
+                    return;
+                }
+
+                // 2. 打包成标准张量包裹
+                TensorPayload payload = new TensorPayload { BaseTensor = tensor };
+
+                // 3. 【启动引擎并执行空中注入！】
+                if (engine == null) BuildEngine();
+                _ = engine.ExecuteSourcePathAsync(targetSourceId, payload);
+            }
+            else
+            {
+                AddLog($"收到未定义 HTTP 指令: {cmd}，抛弃图像。");
+            }
+        }
+
+
+
+
+
 
         private void ToolboxList_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
@@ -496,22 +548,15 @@ namespace ModelHotSwapWorkflow
 
         private void OpenTcpMapping_Click(object sender, RoutedEventArgs e)
         {
-            // 获取全局唯一的 TCP 节点
             var tcpNode = nodes.Values.OfType<TcpCommandNode>().FirstOrDefault();
-
             if (tcpNode != null)
             {
-                // 弹出你原来的配置对话框
-                var dialog = new TcpConfigDialog(tcpNode.IsServer, tcpNode.Address, tcpNode.Port, tcpNode.ManualCommand);
+                // 【关键修改】：不再传零碎的参数，直接传节点和花名册
+                var dialog = new TcpConfigDialog(tcpNode, this.nodes.Values.ToList());
+
                 if (dialog.ShowDialog() == true)
                 {
-                    tcpNode.IsServer = dialog.IsServer;
-                    tcpNode.Address = dialog.Address;
-                    tcpNode.Port = dialog.Port;
-                    tcpNode.ManualCommand = dialog.ManualCommand;
-
-                    AddLog($"全局 TCP 配置已更新: {tcpNode.Port}");
-
+                    AddLog($"全局通信配置已更新: TCP={tcpNode.Port}, HTTP={tcpNode.HttpPort}, 规则数={tcpNode.CommandMapping.Count}");
                     // 重启服务
                     tcpNode.Stop();
                     _ = tcpNode.StartAsync();
@@ -519,7 +564,6 @@ namespace ModelHotSwapWorkflow
             }
             else
             {
-                // 如果画布上没有 TCP 节点，由于它是全局工具，我们可以自动创建一个隐藏的节点来管理
                 AddLog("提示：请先在手动模式下运行一次，或检查初始化逻辑。");
             }
         }
@@ -544,13 +588,54 @@ namespace ModelHotSwapWorkflow
             }
         }
 
+        /// <summary>
+        /// 手动执行工作流触发逻辑。
+        /// 具备动态仿真路由能力：若已配置 TCP 指挥中心及默认仿真口令，则仅激活映射的目标图像源；
+        /// 若未配置，则降级为全局并发执行。
+        /// </summary>
         private async void RunWorkflow_Click(object sender, RoutedEventArgs e)
         {
+            // 拦截：如果当前是自动监听模式，不允许手动点击干扰
+            if (isTriggerMode)
+            {
+                AddLog("系统提示：当前为自动触发模式，请等待外部指令，或切换回手动模式进行测试。");
+                return;
+            }
+
             if (engine == null) BuildEngine();
             AddLog("开始执行工作流...");
+
             try
             {
-                await engine.ExecuteAsync();
+                // 1. 尝试从当前画布节点集中获取全局通信指挥官
+                var tcpNode = nodes.Values.OfType<TcpCommandNode>().FirstOrDefault();
+
+                // 2. 检查是否启用了“精准仿真调度”
+                if (tcpNode != null && !string.IsNullOrWhiteSpace(tcpNode.ManualCommand))
+                {
+                    string simCmd = tcpNode.ManualCommand.Trim();
+
+                    // 查阅路由映射表
+                    if (tcpNode.CommandMapping.TryGetValue(simCmd, out string targetSourceId))
+                    {
+                        AddLog($"[精准仿真] 路由规则命中：模拟指令 [{simCmd}] 已关联至目标图像源，正在独立唤醒...");
+                        // 仅启动指定的图像源节点 (传入 null 代表不需要外部图片数据，按本地硬盘读取即可)
+                        await engine.ExecuteSourcePathAsync(targetSourceId, null);
+                    }
+                    else
+                    {
+                        // 防错机制：配置了指令却没写去向，给出警告并自动降级
+                        AddLog($"[仿真拦截] 警告：指令 [{simCmd}] 未在路由表中找到对应的图像源！系统自动降级为全局启动...");
+                        await engine.ExecuteAsync();
+                    }
+                }
+                // 3. 兜底逻辑：未配置指挥中心或未填写仿真口令，执行全局所有起始节点
+                else
+                {
+                    AddLog("[全局广播] 未配置仿真路由规则，系统默认并发启动所有图像源...");
+                    await engine.ExecuteAsync();
+                }
+
                 AddLog("工作流执行完成");
             }
             catch (Exception ex)
@@ -559,6 +644,7 @@ namespace ModelHotSwapWorkflow
             }
             finally
             {
+                // 归还焦点到工作区画布，确保 Delete 等快捷键持续生效
                 WorkflowCanvas.Focus();
             }
         }
@@ -886,16 +972,13 @@ namespace ModelHotSwapWorkflow
             // 3. TCP 命令节点配置
             else if (node is TcpCommandNode tcpCmd)
             {
-                var dialog = new TcpConfigDialog(tcpCmd.IsServer, tcpCmd.Address, tcpCmd.Port, tcpCmd.ManualCommand);
+                // 【关键修改】：同样改为直接传节点和花名册
+                var dialog = new TcpConfigDialog(tcpCmd, this.nodes.Values.ToList());
+
                 if (dialog.ShowDialog() == true)
                 {
-                    tcpCmd.IsServer = dialog.IsServer;
-                    tcpCmd.Address = dialog.Address;
-                    tcpCmd.Port = dialog.Port;
-                    tcpCmd.ManualCommand = dialog.ManualCommand;
-
-                    string modeText = tcpCmd.IsServer ? $"监听端口:{tcpCmd.Port}" : $"{tcpCmd.Address}:{tcpCmd.Port}";
-                    tcpCmd.ConfigDisplay = $"TCP {(tcpCmd.IsServer ? "服务端" : "客户端")} {modeText} | 手动:{tcpCmd.ManualCommand}";
+                    string modeText = tcpCmd.IsServer ? $"TCP:{tcpCmd.Port} HTTP:{tcpCmd.HttpPort}" : $"{tcpCmd.Address}:{tcpCmd.Port}";
+                    tcpCmd.ConfigDisplay = $"通信中心 | {modeText} | 规则:{tcpCmd.CommandMapping.Count}";
                     control.UpdateConfigDisplay(tcpCmd.ConfigDisplay);
 
                     tcpCmd.Stop();
@@ -905,7 +988,9 @@ namespace ModelHotSwapWorkflow
             // 4. 逻辑分支节点配置
             else if (node is BranchNode branch)
             {
-                var dialog = new BranchConfigDialog(branch, this.nodes);
+                // 【关键修复】：调用 .Values.ToList() 提取字典中的值集合，并转换为标准的泛型列表
+                var dialog = new BranchConfigDialog(branch, this.nodes.Values.ToList());
+
                 if (dialog.ShowDialog() == true)
                 {
                     var mappings = branch.ConditionTargetMap.Select(kv => $"{kv.Key}->{nodes[kv.Value]?.Name}");

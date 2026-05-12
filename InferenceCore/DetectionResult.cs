@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.Linq;
 using System.Text;
+using OpenCvSharp.Extensions;
 using OpenCvSharp;
 using OpenCvSharp.Extensions;
 

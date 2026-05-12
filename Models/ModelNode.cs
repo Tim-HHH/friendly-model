@@ -5,11 +5,13 @@ using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using HMManager;
+using OpenCvSharp;
 
 namespace ModelHotSwapWorkflow.Models
 {
     /// <summary>
-    /// 深度学习推理节点：支持全图推理与基于 ROI 的多级级联推理
+    /// 深度学习推理节点：支持全图推理与基于 ROI 的零拷贝多级级联推理。
+    /// 基于张量传递机制 (Tensor Transmission) 优化跨节点内存分配。
     /// </summary>
     public class ModelNode : NodeBase
     {
@@ -19,94 +21,84 @@ namespace ModelHotSwapWorkflow.Models
         public string? ModelName { get; set; }
         public string ConfigPath { get; set; } = "model_config.json";
         public List<string> AvailableDataSources { get; set; } = new List<string>();
-        public override string NodeType => "ModelNode";
-        public override Type InputType => typeof(object);
-        public override Type OutputType => typeof(HMManager.DetectionResultCollection);
 
-        // ==========================================
-        // 【核心新增】：重写休眠方法，实现物理层面的显存释放
-        // ==========================================
+        public override string NodeType => "ModelNode";
+        public override Type InputType => typeof(TensorPayload);
+        public override Type OutputType => typeof(TensorPayload);
+
         /// <summary>
         /// 切换节点启用状态。
-        /// 核心逻辑：休眠时显式调用 Dispose() 释放底层的 ONNX 推理会话及 GPU 显存资源；
-        /// 唤醒时重新初始化推理引擎，将模型重新加载至显存。
+        /// 休眠时显式调用 Dispose() 释放底层的 ONNX 推理会话及 GPU 显存资源。
         /// </summary>
         public override void ToggleEnableState()
         {
-            // 1. 调用基类方法，反转布尔状态（例如从 true 变成 false）
             base.ToggleEnableState();
 
             if (!this.IsEnabled)
             {
-                // 【进入休眠】
                 if (_modelManager != null)
                 {
-                    _modelManager.Dispose(); // 【最关键的一句】通知底层显卡释放这块显存
-                    _modelManager = null;    // 清空引用，让 C# 系统的垃圾回收车把剩余的零碎垃圾带走
+                    _modelManager.Dispose();
+                    _modelManager = null;
                 }
             }
             else
             {
-                // 【唤醒状态】
                 try
                 {
                     InitializeEngine();
                 }
                 catch (Exception ex)
                 {
-                    // 仅作安全防护：如果唤醒时找不到配置文件，确保程序不会直接崩溃
-                    System.Diagnostics.Debug.WriteLine($"[{Name}] 唤醒重新加载模型失败: {ex.Message}");
+                    System.Diagnostics.Debug.WriteLine($"[{Name}] 唤醒初始化失败: {ex.Message}");
                 }
             }
         }
-        // ==========================================
 
+        /// <summary>
+        /// 异步处理输入张量数据。
+        /// 采用内存指针偏移 (Zero-Copy Slicing) 提取 ROI 张量，执行推理后向系统下游透传聚合载体。
+        /// </summary>
+        /// <param name="input">上游传递的标准 TensorPayload 载体。</param>
+        /// <returns>封装了本阶段推理结果的新 TensorPayload 对象。</returns>
         public override async Task<object> Process(object input)
         {
             InitializeEngine();
 
-            Bitmap? sourceImage = null;
-            List<HMManager.DetectionResult> roiItems = new List<HMManager.DetectionResult>();
-
-            // 识别输入负载：可能是直接的位图，或者是上游模型（或分支）传来的检测结果
-            if (input is Bitmap bmp)
+            if (!(input is TensorPayload payload) || payload.BaseTensor == null || payload.BaseTensor.IsDisposed)
             {
-                sourceImage = bmp;
-            }
-            else if (input is HMManager.DetectionResultCollection results)
-            {
-                // 获取全局缓存的原始图像作为裁剪基准
-                sourceImage = GlobalGallery.LastOriginalImage;
-                roiItems = results.ToList();
+                throw new ArgumentException($"[{Name}] 推理失败：输入数据并非有效的 TensorPayload，或者底层张量已被释放。");
             }
 
-            // 严谨性检查：确保推理前具备有效的图像背景
-            if (sourceImage == null)
-            {
-                throw new Exception($"[{Name}] 推理失败：全局图像缓存为空。请确保工作流以图像源节点开始。");
-            }
-
-            HMManager.DetectionResultCollection finalResults = new HMManager.DetectionResultCollection();
+            DetectionResultCollection finalResults = new DetectionResultCollection();
 
             await Task.Run(() =>
             {
-                if (roiItems.Count > 0)
+                if (payload.RoiResults != null && payload.RoiResults.DetectionCount > 0)
                 {
-                    // 级联模式：针对每一个 ROI 区域进行局部推理
+                    // 级联模式：针对每一个特征区域进行局部推理
+                    var roiItems = payload.RoiResults.ToList();
                     foreach (var roiResult in roiItems)
                     {
                         foreach (var box in roiResult.Boxes)
                         {
-                            using (Bitmap croppedImg = CropImage(sourceImage, box))
+                            // 构造安全边界，防止张量越界访问
+                            var safeRect = ValidateRoiBounds(box, payload.BaseTensor.Width, payload.BaseTensor.Height);
+                            if (safeRect.Width <= 0 || safeRect.Height <= 0) continue;
+
+                            // 【核心技术：零拷贝张量切片 (Zero-Copy Tensor Slicing)】
+                            // 此操作不复制像素内存，仅创建一个新的矩阵头指向原 BaseTensor 的偏移地址
+                            using (Mat roiTensor = new Mat(payload.BaseTensor, safeRect))
                             {
-                                var subResults = _modelManager!.Run(croppedImg);
-                                // 坐标系转换：将局部坐标还原至全局坐标系
+                                var subResults = _modelManager!.Run(roiTensor);
+
+                                // 坐标系映射：将局部张量坐标映射回全局特征图坐标
                                 foreach (var subRes in subResults)
                                 {
                                     for (int i = 0; i < subRes.Boxes.Count; i++)
                                     {
                                         var b = subRes.Boxes[i];
-                                        subRes.Boxes[i] = new Rectangle(b.X + box.X, b.Y + box.Y, b.Width, b.Height);
+                                        subRes.Boxes[i] = new Rectangle(b.X + safeRect.X, b.Y + safeRect.Y, b.Width, b.Height);
                                     }
                                     finalResults.Add(subRes);
                                 }
@@ -116,26 +108,32 @@ namespace ModelHotSwapWorkflow.Models
                 }
                 else
                 {
-                    // 全图模式
-                    var results = _modelManager!.Run(sourceImage);
+                    // 全图模式：直接传入原始张量进行全尺寸特征提取
+                    var results = _modelManager!.Run(payload.BaseTensor);
                     foreach (var res in results) finalResults.Add(res);
                 }
             });
 
-            // 更新渲染缓存
-            if (finalResults.DetectionCount > 0)
+            // 构造新的输出载体：透传原始图像张量，并附带本阶段的检测结果
+            TensorPayload outputPayload = new TensorPayload
             {
-                GlobalGallery.LastDrawnImage = finalResults.Visualize(sourceImage, true);
-            }
+                BaseTensor = payload.BaseTensor, // 引用传递，极低开销
+                RoiResults = finalResults
+            };
 
-            return finalResults;
+            return outputPayload;
         }
 
-        private Bitmap CropImage(Bitmap source, Rectangle rect)
+        /// <summary>
+        /// 校验并纠正感兴趣区域（ROI）的几何边界，避免引发内存访问越界异常 (AccessViolationException)。
+        /// </summary>
+        private OpenCvSharp.Rect ValidateRoiBounds(Rectangle box, int maxWidth, int maxHeight)
         {
-            Rectangle safeRect = Rectangle.Intersect(new Rectangle(0, 0, source.Width, source.Height), rect);
-            if (safeRect.Width <= 0 || safeRect.Height <= 0) return new Bitmap(1, 1);
-            return source.Clone(safeRect, source.PixelFormat);
+            int x = Math.Max(0, box.X);
+            int y = Math.Max(0, box.Y);
+            int width = Math.Min(box.Width, maxWidth - x);
+            int height = Math.Min(box.Height, maxHeight - y);
+            return new OpenCvSharp.Rect(x, y, width, height);
         }
 
         private void InitializeEngine()

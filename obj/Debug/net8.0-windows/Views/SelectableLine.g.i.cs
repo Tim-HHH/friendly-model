@@ -100,7 +100,7 @@ namespace ModelHotSwapWorkflow {
                 return;
             }
             _contentLoaded = true;
-            System.Uri resourceLocater = new System.Uri("/ModelHotSwapWorkflow;V1.0.0.0;component/views/selectableline.xaml", System.UriKind.Relative);
+            System.Uri resourceLocater = new System.Uri("/ModelHotSwapWorkflow;component/views/selectableline.xaml", System.UriKind.Relative);
             
             #line 1 "..\..\..\..\Views\SelectableLine.xaml"
             System.Windows.Application.LoadComponent(this, resourceLocater);

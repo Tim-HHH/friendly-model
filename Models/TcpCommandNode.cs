@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Threading.Tasks;
 using ModelHotSwapWorkflow.Services;
 
@@ -12,17 +13,23 @@ namespace ModelHotSwapWorkflow.Models
         public string Address { get; set; } = "127.0.0.1";
         public bool IsServer { get; set; } = true;
 
-        // 新增：手动模式下的预设命令值
+        // 【新增】：HTTP 监听端口
+        public int HttpPort { get; set; } = 8080;
+
         public string ManualCommand { get; set; } = "1";
 
+        // TCP 事件
         public event Action<string> MessageReceived;
+        // 【新增】：HTTP 事件（附带图片字节）
+        public event Action<string, byte[]> HttpMessageReceived;
 
         private TcpCommunicationService tcpService;
+        private HttpCommunicationService httpService; // 【新增】HTTP 服务
+
         private string receivedCommand;
         private readonly object lockObj = new object();
         private readonly Action<string> logAction;
 
-        // 【新增】指令映射表：Key=TCP指令(如"CH1"), Value=图像源节点ID
         public Dictionary<string, string> CommandMapping { get; set; } = new Dictionary<string, string>();
 
         public TcpCommandNode(Action<string> logAction = null)
@@ -37,63 +44,50 @@ namespace ModelHotSwapWorkflow.Models
         public async Task StartAsync()
         {
             Stop();
+
+            // 1. 启动原来的 TCP 服务
             tcpService = new TcpCommunicationService();
             tcpService.OnConnected += () =>
             {
-                if (IsServer)
-                    logAction?.Invoke($"TCP 服务端已建立连接 (端口 {Port})");
-                else
-                    logAction?.Invoke($"TCP 客户端已连接到 {Address}:{Port}");
+                if (IsServer) logAction?.Invoke($"TCP 服务端已建立连接 (端口 {Port})");
+                else logAction?.Invoke($"TCP 客户端已连接到 {Address}:{Port}");
             };
             tcpService.OnMessageReceived += OnTcpMessage;
 
-            if (IsServer)
-            {
-                await tcpService.StartServerAsync(Port);
-                logAction?.Invoke($"TCP 服务端已启动，监听端口 {Port}");
-            }
-            else
-            {
-                await tcpService.ConnectAsync(Address, Port);
-                logAction?.Invoke($"TCP 客户端正在连接 {Address}:{Port} ...");
-            }
+            if (IsServer) await tcpService.StartServerAsync(Port);
+            else await tcpService.ConnectAsync(Address, Port);
+
+            // 2. 【新增】：同步启动 HTTP 服务
+            httpService = new HttpCommunicationService();
+            httpService.OnLog += logAction;
+            httpService.OnHttpPostReceived += (cmd, img) => HttpMessageReceived?.Invoke(cmd, img);
+            httpService.StartServer(HttpPort);
         }
 
         private void OnTcpMessage(string message)
         {
-            logAction?.Invoke($"TCP 收到消息: {message}");
+            logAction?.Invoke($"TCP 收到测试消息: {message}");
             MessageReceived?.Invoke(message);
-            lock (lockObj)
-            {
-                receivedCommand = message.Trim();
-            }
+            lock (lockObj) { receivedCommand = message.Trim(); }
         }
 
         public override async Task<object> Process(object input)
         {
-            if (IsManualMode)
+            // 这里保留您原有的流程阻塞逻辑
+            if (IsManualMode) return ManualCommand ?? "1";
+
+            int timeout = 10000;
+            int elapsed = 0;
+            while (string.IsNullOrEmpty(receivedCommand) && elapsed < timeout)
             {
-                // 手动模式：直接返回预设命令值（无需等待）
-                string cmd = ManualCommand ?? "1";
-                logAction?.Invoke($"TCP 手动模式，使用预设命令: {cmd}");
-                return cmd;
+                await Task.Delay(100);
+                elapsed += 100;
             }
-            else
+            lock (lockObj)
             {
-                // 触发模式：等待新消息（超时 10 秒）
-                int timeout = 10000;
-                int elapsed = 0;
-                while (string.IsNullOrEmpty(receivedCommand) && elapsed < timeout)
-                {
-                    await Task.Delay(100);
-                    elapsed += 100;
-                }
-                lock (lockObj)
-                {
-                    string cmd = receivedCommand;
-                    receivedCommand = null;
-                    return cmd;
-                }
+                string cmd = receivedCommand;
+                receivedCommand = null;
+                return cmd;
             }
         }
 
@@ -101,7 +95,11 @@ namespace ModelHotSwapWorkflow.Models
         {
             tcpService?.Stop();
             tcpService = null;
-            logAction?.Invoke($"TCP 连接已关闭");
+
+            httpService?.Stop();
+            httpService = null;
+
+            logAction?.Invoke($"双通道通信 (TCP/HTTP) 已关闭");
         }
     }
 }

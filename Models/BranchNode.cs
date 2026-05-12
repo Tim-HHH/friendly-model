@@ -7,69 +7,88 @@ using HMManager;
 namespace ModelHotSwapWorkflow.Models
 {
     /// <summary>
-    /// 分支节点输出结果封装载荷
+    /// 分支节点输出结果封装载荷。
     /// </summary>
     public class BranchResult
     {
+        /// <summary>获取或设置决策后的目标下游节点标识。</summary>
         public string TargetNodeId { get; set; }
+        /// <summary>获取或设置向下游透传的数据载体。</summary>
         public object Data { get; set; }
     }
 
     /// <summary>
-    /// 逻辑分支节点：根据上游推理结果进行路由分发
+    /// 工业级多策略分支节点。
+    /// 适配 TensorPayload 传输协议，支持“安检门（存在性校验）”与“终极裁判（结果分拣）”双重逻辑。
     /// </summary>
     public class BranchNode : NodeBase
     {
         public override string NodeType => "Branch";
-        public override Type InputType => typeof(DetectionResultCollection);
+
+        // 【关键升级】：输入输出全面适配张量包裹协议
+        public override Type InputType => typeof(TensorPayload);
         public override Type OutputType => typeof(BranchResult);
 
-        // 路由映射表 (UI配置的条件将保存在这里)
+        /// <summary>路由映射表：决策字符串 (如 "OK", "NG") -> 目标节点 ID。</summary>
         public Dictionary<string, string> ConditionTargetMap { get; set; } = new Dictionary<string, string>();
+
+        /// <summary>默认流向节点 ID（兜底路径）。</summary>
         public string DefaultTargetNodeId { get; set; }
 
-        // 置信度及格线
+        /// <summary>置信度判定阈值，默认为 0.5。</summary>
         public double Threshold { get; set; } = 0.5;
 
+        /// <summary>
+        /// 执行核心分支逻辑。
+        /// 实现思路：
+        /// 1. 拆解 TensorPayload 包裹。
+        /// 2. 扫描 RoiResults 结果集进行多准则判定。
+        /// 3. 根据判定生成的 Decision 字符串执行路由映射。
+        /// </summary>
         public override async Task<object> Process(object input)
         {
-            var results = input as DetectionResultCollection;
+            var payload = input as TensorPayload;
 
-            // 【关键修改1】：默认判定为 "0" (代表失败/未检测到目标)
-            string decision = "0";
+            // 预设决策为 "NG" (未通过)
+            string decision = "NG";
 
-            if (results != null && results.DetectionCount > 0)
+            // ---------------------------------------------------------
+            // 核心判定逻辑（兼顾“安检门”与“裁判员”职责）
+            // ---------------------------------------------------------
+            if (payload != null && payload.RoiResults != null && payload.RoiResults.DetectionCount > 0)
             {
-                var allScores = results.SelectMany(r => r.Scores).ToList();
-                if (allScores.Count > 0)
+                // 提取所有检测项的置信度，评估是否存在达标的识别目标
+                var allScores = payload.RoiResults.SelectMany(r => r.Scores).ToList();
+
+                if (allScores.Count > 0 && allScores.Max() >= Threshold)
                 {
-                    float maxConfidence = allScores.Max();
-                    if (maxConfidence >= Threshold)
-                    {
-                        // 【关键修改2】：置信度达标，判定为 "1" (代表成功/检测到有效目标)
-                        decision = "1";
-                    }
+                    // 若存在达标结果，初步判定为 OK。
+                    // 此处可扩展逻辑：例如遍历 ClassNames，若包含 "Defect" 字样，则强制修正为 "NG"。
+                    decision = "OK";
                 }
             }
 
-            // 根据决策去字典里找对应的下级节点 ID
+            // ---------------------------------------------------------
+            // 路由寻址逻辑
+            // ---------------------------------------------------------
             string targetId = DefaultTargetNodeId;
+
+            // 优先根据决策结果从映射表中匹配目标路径
             if (ConditionTargetMap.TryGetValue(decision, out string mappedTargetId))
             {
                 targetId = mappedTargetId;
             }
 
-            // 【关键修改3】：贴心的报错提示。如果没找到路线，引擎会在控制台大声报警！
+            // 容错处理：若无匹配路径则抛出异常
             if (string.IsNullOrEmpty(targetId))
             {
-                throw new Exception($"无法路由：当前检测结果判定为 [{decision}]，但您在分支工具中没有为 [{decision}] 连线或配置目标！");
+                throw new Exception($"[分支拦截] 决策结果为 [{decision}]，但未配置对应的下游流向，请检查配置界面。");
             }
 
-            // 返回包装好的路由结果，交给引擎驱动下游
             return new BranchResult
             {
                 TargetNodeId = targetId,
-                Data = results
+                Data = payload // 将原始张量包裹原封不动透传给下游，实现零拷贝
             };
         }
     }

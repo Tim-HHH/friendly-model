@@ -40,19 +40,16 @@ namespace ModelHotSwapWorkflow.Services
             }
         }
 
-        public async Task ExecuteSourcePathAsync(string sourceNodeId)
+        public async Task ExecuteSourcePathAsync(string sourceNodeId, object externalData = null)
         {
             if (!nodes.ContainsKey(sourceNodeId)) return;
-
-            // 开启独立线程，支持并发无阻塞执行
             _ = Task.Run(async () =>
             {
                 try
                 {
                     logAction?.Invoke($"[线程分配] 路径触发源: {nodes[sourceNodeId].Name}");
-
-                    // 【核心修复】：直接从源节点开始执行其 Process 方法
-                    await ExecuteNodeAsync(sourceNodeId, null);
+                    // 把外部数据塞进去
+                    await ExecuteNodeAsync(sourceNodeId, externalData);
                 }
                 catch (Exception ex)
                 {

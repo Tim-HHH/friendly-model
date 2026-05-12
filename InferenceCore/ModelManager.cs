@@ -45,6 +45,26 @@ namespace HMManager
                 return col;
             }
         }
+
+        // 请将此方法添加到 InferenceCore/ModelManager.cs 的 ModelManager 类中
+
+        /// <summary>
+        /// 执行底层推理（张量直通重载版本）。
+        /// 绕过 Bitmap 的装箱与拆箱过程，直接将 OpenCV Mat 投递至 ONNX 运行时执行器，显著降低 I/O 延迟。
+        /// </summary>
+        /// <param name="inputTensor">输入的图像张量/矩阵。</param>
+        /// <returns>检测结果集合。</returns>
+        public DetectionResultCollection Run(Mat inputTensor)
+        {
+            var col = new DetectionResultCollection();
+            // 直接复用传入的连续内存块进入推理管线
+            var result = _predictor.RunInference(inputTensor);
+            if (result != null) col.Add(result);
+            return col;
+        }
+
+
+
         public void Dispose() => _predictor?.Dispose();
     }
 
@@ -105,6 +125,8 @@ namespace HMManager
 
             return parser.Parse(outputs, new OpenCvSharp.Size(inputImage.Width, inputImage.Height), ratio[0], padding.padW, padding.padH);
         }
+
+
 
         public void Dispose() => onnx_infer?.Dispose();
     }
