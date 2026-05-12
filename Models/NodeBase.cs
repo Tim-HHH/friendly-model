@@ -30,6 +30,26 @@ namespace ModelHotSwapWorkflow.Models
         /// </summary>
         public string ConfigDisplay { get; set; } = "未配置";
 
+        // ==========================================
+        // 【新增】：节点休眠功能的基础属性与方法
+        // ==========================================
+
+        /// <summary>
+        /// 获取或设置节点是否处于启用（非休眠）状态。默认为 true（工作状态）。
+        /// </summary>
+        public bool IsEnabled { get; set; } = true;
+
+        /// <summary>
+        /// 触发节点状态切换逻辑。
+        /// 核心模型节点（ModelNode）可重写此方法，在休眠时调用 Dispose() 释放显存，在唤醒时重新加载 ONNX 模型。
+        /// </summary>
+        public virtual void ToggleEnableState()
+        {
+            IsEnabled = !IsEnabled;
+        }
+
+        // ==========================================
+
         /// <summary>
         /// 节点类型名称（用于序列化和显示）
         /// </summary>

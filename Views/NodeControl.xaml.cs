@@ -15,7 +15,10 @@ namespace ModelHotSwapWorkflow.Views
         public event Action<NodeControl> OnConfigRequested;
         public event Action<NodeControl, string> OnConnectionStart;
         public event Action<NodeControl> OnPositionChanged;
-        public event Action<NodeControl> OnSelected;   // 新增选中事件
+        public event Action<NodeControl> OnSelected;
+
+        // 【新增】：向主大厅报告“我要休眠/唤醒”的事件
+        public event Action<NodeControl> OnToggleSleepRequested;
 
         private Point dragStart;
         private bool isDragging;
@@ -28,30 +31,51 @@ namespace ModelHotSwapWorkflow.Views
             TitleText.Text = node.Name;
             ConfigDisplay.Text = node.ConfigDisplay;
 
-            
+            // ==========================================
+            // 【新增】：初始化右键菜单（包含删除和休眠功能）
+            // ==========================================
+            var contextMenu = new ContextMenu();
+
+            var deleteMenuItem = new MenuItem { Header = "删除节点" };
+            deleteMenuItem.Click += (s, e) => OnDeleteRequested?.Invoke(this);
+            contextMenu.Items.Add(deleteMenuItem);
+
+            var sleepMenuItem = new MenuItem { Header = "休眠 / 唤醒" };
+            sleepMenuItem.Click += (s, e) => OnToggleSleepRequested?.Invoke(this);
+            contextMenu.Items.Add(sleepMenuItem);
+
+            this.ContextMenu = contextMenu;
+            // ==========================================
 
             this.MouseLeftButtonDown += NodeControl_MouseLeftButtonDown;
             this.MouseMove += NodeControl_MouseMove;
             this.MouseLeftButtonUp += NodeControl_MouseLeftButtonUp;
-            this.MouseDoubleClick += NodeControl_MouseDoubleClick;  // 双击触发配置
+            this.MouseDoubleClick += NodeControl_MouseDoubleClick;
             SetConnectorsVisibility(Visibility.Collapsed);
         }
 
-        // 双击打开配置
+        // ==========================================
+        // 【新增】：更新界面的视觉效果 (变灰/变亮)
+        // ==========================================
+        /// <summary>
+        /// 更新 UI 视觉状态：休眠时节点半透明，唤醒时恢复完全不透明。
+        /// </summary>
+        public void UpdateVisualState(bool isEnabled)
+        {
+            this.Opacity = isEnabled ? 1.0 : 0.4;
+        }
+
         private void NodeControl_MouseDoubleClick(object sender, MouseButtonEventArgs e)
         {
             OnConfigRequested?.Invoke(this);
             e.Handled = true;
         }
 
-        // 单击选中
         private void NodeControl_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // 触发选中事件
             OnSelected?.Invoke(this);
             SetSelected(true);
 
-            // 准备拖拽
             dragStart = e.GetPosition(this.Parent as Canvas);
             isDragging = true;
             this.CaptureMouse();
@@ -86,7 +110,6 @@ namespace ModelHotSwapWorkflow.Views
             }
         }
 
-
         private void LeftConnector_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
             OnConnectionStart?.Invoke(this, "Left");
@@ -108,10 +131,6 @@ namespace ModelHotSwapWorkflow.Views
             e.Handled = true;
         }
 
-
-
-
-        // 设置选中状态视觉反馈
         public void SetSelected(bool selected)
         {
             isSelected = selected;
@@ -122,12 +141,10 @@ namespace ModelHotSwapWorkflow.Views
 
         public bool IsSelected => isSelected;
 
-        // 更新配置显示
         public void UpdateConfigDisplay(string text)
         {
             ConfigDisplay.Text = text;
         }
-
 
         private void NodeControl_MouseEnter(object sender, MouseEventArgs e)
         {
@@ -148,10 +165,9 @@ namespace ModelHotSwapWorkflow.Views
             BottomConnector.Visibility = visibility;
         }
 
-
         public void UpdateDataSources(List<string> sources)
         {
-           
+
         }
     }
 }

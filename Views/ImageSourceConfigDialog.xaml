@@ -1,7 +1,7 @@
 ﻿<Window x:Class="ModelHotSwapWorkflow.Views.ImageSourceConfigDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="图像采集源配置" Height="450" Width="500"
+        Title="图像采集源配置" Height="550" Width="500"
         WindowStartupLocation="CenterOwner" Background="#2D2D2D" Foreground="White">
     <Grid Margin="20">
         <Grid.RowDefinitions>
@@ -15,7 +15,7 @@
         <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto">
             <StackPanel>
                 <TextBlock Text="采集模式 (Collection Mode):" Foreground="#AAAAAA" Margin="0,5"/>
-                <ComboBox x:Name="ModeComboBox" Height="30" Background="#3E3E42" Foreground="White" SelectedIndex="0">
+                <ComboBox x:Name="ModeComboBox" Height="30" Background="#3E3E42" Foreground="#3E3E42" SelectedIndex="0">
                     <ComboBoxItem Content="单张文件 (Single File)"/>
                     <ComboBoxItem Content="文件夹遍历 (Folder Sequence)"/>
                 </ComboBox>

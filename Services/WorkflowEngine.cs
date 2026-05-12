@@ -69,6 +69,28 @@ namespace ModelHotSwapWorkflow.Services
             // 如果节点不存在，立刻停止
             if (!nodes.TryGetValue(nodeId, out var currentNode)) return;
 
+            // ==========================================
+            // 【核心新增】：休眠拦截与数据透传逻辑
+            // ==========================================
+            if (!currentNode.IsEnabled)
+            {
+                // 如果不是起点，就打印一句透传日志
+                if (currentNode.NodeType != "ImageSource")
+                {
+                    logAction?.Invoke($"节点处于休眠状态，直接透传数据: {currentNode.Name}");
+                }
+
+                // 工人不在工位，数据直接跳过当前节点，送给所有下游节点
+                var bypassDownstreams = connections.Where(c => c.SourceId == nodeId).ToList();
+                foreach (var conn in bypassDownstreams)
+                {
+                    await ExecuteNodeAsync(conn.TargetId, inputData);
+                }
+                return; // 提前结束当前节点的处理，绝不执行重度计算！
+            }
+            // ==========================================
+
+
             // 打印日志 (过滤掉图像源，因为前面已经打印过了，保持日志清爽)
             if (currentNode.NodeType != "ImageSource")
             {

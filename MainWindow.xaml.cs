@@ -41,6 +41,18 @@ namespace ModelHotSwapWorkflow
         private WorkflowEngine engine;
         private bool isTriggerMode = false;
 
+        // 5. 【新增】多选与框选状态成员
+        /// <summary>记录多选状态下被选中的节点集合。</summary>
+        private List<NodeControl> multiSelectedNodes = new List<NodeControl>();
+        /// <summary>记录多选状态下被选中的连线集合。</summary>
+        private List<SelectableLine> multiSelectedLines = new List<SelectableLine>();
+
+        private Point selectionStartPoint;
+        private Rectangle selectionBox;
+        private bool isSelecting = false;
+
+
+
         public MainWindow()
         {
             InitializeComponent();
@@ -556,35 +568,31 @@ namespace ModelHotSwapWorkflow
         {
             this.PreviewKeyDown += MainWindow_PreviewKeyDown;
             WorkflowCanvas.Focusable = true;
+
+            // 【新增这两行】：让画布能感觉到鼠标在拖拉和松手
+            WorkflowCanvas.MouseMove += WorkflowCanvas_MouseMove;
+            WorkflowCanvas.MouseLeftButtonUp += WorkflowCanvas_MouseLeftButtonUp;
         }
 
         private void MainWindow_PreviewKeyDown(object sender, KeyEventArgs e)
         {
             if (e.Key == Key.Delete)
             {
-                if (selectedNodeControl != null)
-                {
-                    DeleteNode(selectedNodeControl);
-                    selectedNodeControl = null;
-                    e.Handled = true;
-                }
-                else if (selectedLine != null)
-                {
-                    var conn = selectedLine.Connection;
-                    if (conn != null && connections.Contains(conn))
-                    {
-                        connections.Remove(conn);
-                        nodes.TryGetValue(conn.SourceId, out var sourceNode);
-                        nodes.TryGetValue(conn.TargetId, out var targetNode);
-                        string sourceName = sourceNode?.Name ?? "未知节点";
-                        string targetName = targetNode?.Name ?? "未知节点";
-                        AddLog($"删除连线: {sourceName} → {targetName}");
-                        RedrawAllConnections();
-                        BuildEngine();
-                    }
-                    selectedLine = null;
-                    e.Handled = true;
-                }
+                // 1. 删除框选的多个节点和连线 (ToList 是为了防止一边删一边报错)
+                foreach (var node in multiSelectedNodes.ToList()) DeleteNode(node);
+                foreach (var line in multiSelectedLines.ToList()) DeleteLine(line);
+
+                // 2. 删除点击选中的单个节点或连线
+                if (selectedNodeControl != null) DeleteNode(selectedNodeControl);
+                if (selectedLine != null) DeleteLine(selectedLine);
+
+                // 3. 清理账本
+                multiSelectedNodes.Clear();
+                multiSelectedLines.Clear();
+                selectedNodeControl = null;
+                selectedLine = null;
+
+                e.Handled = true;
             }
         }
 
@@ -600,27 +608,118 @@ namespace ModelHotSwapWorkflow
 
         private void WorkflowCanvas_MouseLeftButtonDown(object sender, MouseButtonEventArgs e)
         {
-            // 只有点击到画布本身（而非子元素）时才取消选中
             if (e.OriginalSource == WorkflowCanvas)
             {
                 ClearAllSelections();
+
+                // 开始撒网（生成半透明蓝色方框）
+                isSelecting = true;
+                selectionStartPoint = e.GetPosition(WorkflowCanvas);
+                selectionBox = new Rectangle
+                {
+                    Stroke = Brushes.DodgerBlue,
+                    StrokeThickness = 1,
+                    Fill = new SolidColorBrush(Color.FromArgb(50, 30, 144, 255)), // 50代表半透明
+                    StrokeDashArray = new DoubleCollection { 2, 2 } // 虚线边框
+                };
+                Canvas.SetLeft(selectionBox, selectionStartPoint.X);
+                Canvas.SetTop(selectionBox, selectionStartPoint.Y);
+                WorkflowCanvas.Children.Add(selectionBox);
+                WorkflowCanvas.CaptureMouse(); // 锁定鼠标焦点
             }
         }
 
+
+        /// <summary>
+        /// 处理鼠标在画布上的移动事件，动态更新框选矩形的尺寸。
+        /// </summary>
+        private void WorkflowCanvas_MouseMove(object sender, MouseEventArgs e)
+        {
+            if (isSelecting && selectionBox != null)
+            {
+                Point currentPos = e.GetPosition(WorkflowCanvas);
+                // 计算宽和高（支持反向拉框）
+                double x = Math.Min(currentPos.X, selectionStartPoint.X);
+                double y = Math.Min(currentPos.Y, selectionStartPoint.Y);
+                double width = Math.Abs(currentPos.X - selectionStartPoint.X);
+                double height = Math.Abs(currentPos.Y - selectionStartPoint.Y);
+
+                Canvas.SetLeft(selectionBox, x);
+                Canvas.SetTop(selectionBox, y);
+                selectionBox.Width = width;
+                selectionBox.Height = height;
+            }
+        }
+
+
+        /// <summary>
+        /// 处理鼠标左键抬起事件，执行包围盒碰撞检测 (AABB)，确立批量选中对象。
+        /// </summary>
+        private void WorkflowCanvas_MouseLeftButtonUp(object sender, MouseButtonEventArgs e)
+        {
+            if (isSelecting)
+            {
+                isSelecting = false;
+                WorkflowCanvas.ReleaseMouseCapture();
+
+                // 获取渔网的物理边界
+                Rect boxRect = new Rect(Canvas.GetLeft(selectionBox), Canvas.GetTop(selectionBox), selectionBox.Width, selectionBox.Height);
+
+                // 1. 检查哪些节点掉进了网里
+                foreach (var ctrl in controlMap.Keys)
+                {
+                    Rect nodeRect = new Rect(Canvas.GetLeft(ctrl), Canvas.GetTop(ctrl), ctrl.ActualWidth, ctrl.ActualHeight);
+                    if (boxRect.IntersectsWith(nodeRect))
+                    {
+                        multiSelectedNodes.Add(ctrl);
+                        ctrl.SetSelected(true); // 亮起！
+                    }
+                }
+
+                // 2. 检查哪些连线掉进了网里（基于起止点简化判定）
+                foreach (var line in selectableLines)
+                {
+                    var conn = line.Connection;
+                    var sourceCtrl = controlMap.FirstOrDefault(kv => kv.Value?.Id == conn.SourceId).Key;
+                    var targetCtrl = controlMap.FirstOrDefault(kv => kv.Value?.Id == conn.TargetId).Key;
+
+                    if (sourceCtrl != null && targetCtrl != null)
+                    {
+                        Point p1 = GetPinPosition(sourceCtrl, conn.SourcePin);
+                        Point p2 = GetPinPosition(targetCtrl, conn.TargetPin);
+                        Rect lineRect = new Rect(p1, p2);
+
+                        if (boxRect.IntersectsWith(lineRect))
+                        {
+                            multiSelectedLines.Add(line);
+                            line.SetSelected(true); // 亮起！
+                        }
+                    }
+                }
+
+                // 收网（从画布移除方框控件）
+                WorkflowCanvas.Children.Remove(selectionBox);
+                selectionBox = null;
+            }
+        }
+
+
+
+
+
+
         private void ClearAllSelections()
         {
-            // 取消节点选中
-            if (selectedNodeControl != null)
-            {
-                selectedNodeControl.SetSelected(false);
-                selectedNodeControl = null;
-            }
-            // 取消连线选中
-            if (selectedLine != null)
-            {
-                selectedLine.SetSelected(false);
-                selectedLine = null;
-            }
+            // 清理单选
+            if (selectedNodeControl != null) { selectedNodeControl.SetSelected(false); selectedNodeControl = null; }
+            if (selectedLine != null) { selectedLine.SetSelected(false); selectedLine = null; }
+
+            // 清理多选
+            foreach (var node in multiSelectedNodes) node.SetSelected(false);
+            multiSelectedNodes.Clear();
+
+            foreach (var line in multiSelectedLines) line.SetSelected(false);
+            multiSelectedLines.Clear();
         }
 
         private void WorkflowCanvas_Drop(object sender, DragEventArgs e)
@@ -672,6 +771,7 @@ namespace ModelHotSwapWorkflow
 
             // 订阅控件事件
             control.OnDeleteRequested += DeleteNode;
+            control.OnToggleSleepRequested += ToggleNodeSleepState;
             control.OnConfigRequested += ConfigureNode;
             control.OnConnectionStart += StartConnection;
             control.OnPositionChanged += (c) => UpdateConnections();
@@ -950,7 +1050,22 @@ namespace ModelHotSwapWorkflow
         }
 
 
+        /// <summary>
+        /// 切换指定节点的休眠状态，更新 UI 并在后台释放或重建模型资源。
+        /// </summary>
+        private void ToggleNodeSleepState(NodeControl control)
+        {
+            var node = controlMap[control];
 
+            // 1. 触发节点的底层切换逻辑 (改变状态)
+            node.ToggleEnableState();
+
+            // 2. 更新界面的视觉效果 (变灰/变亮)
+            control.UpdateVisualState(node.IsEnabled);
+
+            string stateStr = node.IsEnabled ? "已唤醒" : "已休眠";
+            AddLog($"节点状态变更: {node.Name} {stateStr}");
+        }
         private string GetClosestPin(NodeControl control, Point mousePos)
         {
             double w = control.ActualWidth, h = control.ActualHeight;
@@ -1011,6 +1126,18 @@ namespace ModelHotSwapWorkflow
                 // 注意：由于 SelectableLine 用户控件现在没有 Connection 属性，
                 // 您可以在 SelectableLine.xaml.cs 里加一个：public Connection Connection { get; set; }
 
+                // 把连线关系（身份证）正式交给这根线
+                curveLine.Connection = conn;
+
+                // 订阅自定义控件内部暴露的 OnSelected 委托事件，不再使用默认的 MouseLeftButtonDown
+                curveLine.OnSelected += (line) =>
+                {
+                    // 调用主窗体方法，将当前连线设为高亮选中状态
+                    SetSelectedLine(line);
+                };
+                // 订阅右键删除请求
+                curveLine.OnDeleteRequested += DeleteLine;
+
                 WorkflowCanvas.Children.Add(curveLine);
                 selectableLines.Add(curveLine);
             }
@@ -1069,6 +1196,32 @@ namespace ModelHotSwapWorkflow
             geometry.Figures.Add(figure);
             return geometry;
         }
+
+
+        /// <summary>
+        /// 移除指定的连线对象，并同步清理底层图结构中的边关系。
+        /// </summary>
+        /// <param name="line">待移除的连线控件实例。</param>
+        private void DeleteLine(SelectableLine line)
+        {
+            var conn = line.Connection;
+            if (conn != null && connections.Contains(conn))
+            {
+                connections.Remove(conn);
+                nodes.TryGetValue(conn.SourceId, out var sourceNode);
+                nodes.TryGetValue(conn.TargetId, out var targetNode);
+                string sourceName = sourceNode?.Name ?? "未知节点";
+                string targetName = targetNode?.Name ?? "未知节点";
+                AddLog($"删除连线: {sourceName} → {targetName}");
+
+                RedrawAllConnections();
+                BuildEngine();
+            }
+            if (selectedLine == line) selectedLine = null;
+        }
+
+
+
 
         private void SetSelectedLine(SelectableLine line)
         {

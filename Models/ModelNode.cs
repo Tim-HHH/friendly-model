@@ -19,10 +19,47 @@ namespace ModelHotSwapWorkflow.Models
         public string? ModelName { get; set; }
         public string ConfigPath { get; set; } = "model_config.json";
         public List<string> AvailableDataSources { get; set; } = new List<string>();
-
         public override string NodeType => "ModelNode";
         public override Type InputType => typeof(object);
         public override Type OutputType => typeof(HMManager.DetectionResultCollection);
+
+        // ==========================================
+        // 【核心新增】：重写休眠方法，实现物理层面的显存释放
+        // ==========================================
+        /// <summary>
+        /// 切换节点启用状态。
+        /// 核心逻辑：休眠时显式调用 Dispose() 释放底层的 ONNX 推理会话及 GPU 显存资源；
+        /// 唤醒时重新初始化推理引擎，将模型重新加载至显存。
+        /// </summary>
+        public override void ToggleEnableState()
+        {
+            // 1. 调用基类方法，反转布尔状态（例如从 true 变成 false）
+            base.ToggleEnableState();
+
+            if (!this.IsEnabled)
+            {
+                // 【进入休眠】
+                if (_modelManager != null)
+                {
+                    _modelManager.Dispose(); // 【最关键的一句】通知底层显卡释放这块显存
+                    _modelManager = null;    // 清空引用，让 C# 系统的垃圾回收车把剩余的零碎垃圾带走
+                }
+            }
+            else
+            {
+                // 【唤醒状态】
+                try
+                {
+                    InitializeEngine();
+                }
+                catch (Exception ex)
+                {
+                    // 仅作安全防护：如果唤醒时找不到配置文件，确保程序不会直接崩溃
+                    System.Diagnostics.Debug.WriteLine($"[{Name}] 唤醒重新加载模型失败: {ex.Message}");
+                }
+            }
+        }
+        // ==========================================
 
         public override async Task<object> Process(object input)
         {

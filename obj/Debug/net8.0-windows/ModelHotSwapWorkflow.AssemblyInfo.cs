@@ -14,7 +14,7 @@ using System.Reflection;
 [assembly: System.Reflection.AssemblyCompanyAttribute("ModelHotSwapWorkflow")]
 [assembly: System.Reflection.AssemblyConfigurationAttribute("Debug")]
 [assembly: System.Reflection.AssemblyFileVersionAttribute("1.0.0.0")]
-[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a3c631d338163a237c99ab67a6da58de24b5913b")]
+[assembly: System.Reflection.AssemblyInformationalVersionAttribute("1.0.0+a8f14c0da1111280f95f3264887010b786cc0037")]
 [assembly: System.Reflection.AssemblyProductAttribute("ModelHotSwapWorkflow")]
 [assembly: System.Reflection.AssemblyTitleAttribute("ModelHotSwapWorkflow")]
 [assembly: System.Reflection.AssemblyVersionAttribute("1.0.0.0")]

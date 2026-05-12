@@ -10,14 +10,24 @@ namespace ModelHotSwapWorkflow
     public partial class SelectableLine : UserControl
     {
         public Connection Connection { get; set; }
-        // 增加一个事件，告诉 MainWindow 我被选中了
         public event Action<SelectableLine> OnSelected;
+
+        /// <summary>
+        /// 定义右键菜单删除事件，向上层容器报告删除请求。
+        /// </summary>
+        public event Action<SelectableLine> OnDeleteRequested; // 【新增这一行】
 
         public SelectableLine()
         {
             InitializeComponent();
-            // 【关键】：这里一定要是 true，否则点不到！
             this.IsHitTestVisible = true;
+
+            // 【新增下面这段】：初始化并绑定右键上下文菜单
+            var contextMenu = new ContextMenu();
+            var deleteMenuItem = new MenuItem { Header = "删除连线" };
+            deleteMenuItem.Click += (s, e) => OnDeleteRequested?.Invoke(this);
+            contextMenu.Items.Add(deleteMenuItem);
+            this.ContextMenu = contextMenu;
         }
 
         public void UpdatePath(Point start, Point end)
