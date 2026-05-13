@@ -63,45 +63,60 @@ namespace ModelHotSwapWorkflow
             InitializeGlobalTcpNode();
         }
 
-        private void TriggerModeRadio_Checked(object sender, RoutedEventArgs e)
+        /// <summary>
+        /// 全局运行模式切换枢纽
+        /// </summary>
+        /// <summary>
+        /// 全局运行模式切换枢纽
+        /// </summary>
+        private void ModeChanged(object sender, RoutedEventArgs e)
         {
-            isTriggerMode = true;
-            AddLog("切换到触发模式，等待外部 (TCP/HTTP) 命令...");
+            // 防止在窗口刚加载时触发
+            if (!IsLoaded) return;
 
-            // 【关键绑定步骤】：告诉指挥官收到消息后来找谁处理
+            // 判断当前是否是手动模式
+            bool isManual = ManualModeRadio.IsChecked == true;
+            isTriggerMode = !isManual;
+
+            // 1. 【核心逻辑】：只要不是手动模式，所有控制项全部变灰禁用！
+            BtnConfig.IsEnabled = isManual;
+            BtnImport.IsEnabled = isManual;
+            BtnExport.IsEnabled = isManual;
+            BtnClear.IsEnabled = isManual;
+            BtnRun.IsEnabled = isManual;
+
+            // 锁住画布，防止拖拽连线和删改节点
+            WorkflowCanvas.IsEnabled = isManual;
+
+            // 【关键新增】：锁住左侧工具箱，防止双击或拖拽添加新节点！
+            ToolboxList.IsEnabled = isManual;
+
+            // 2. 通信管线的智能切换
             var tcpNode = nodes.Values.OfType<TcpCommandNode>().FirstOrDefault();
             if (tcpNode != null)
             {
-                // 1. 绑定 TCP 事件（老门）
-                tcpNode.MessageReceived -= OnTriggerMessageReceived; // 先解绑，防止重复绑定触发多次
-                tcpNode.MessageReceived += OnTriggerMessageReceived; // 正式绑定！
-
-                // 2. 绑定 HTTP 事件（新门：带图片直传功能）
-                tcpNode.HttpMessageReceived -= OnHttpTriggerReceived; // 先解绑
-                tcpNode.HttpMessageReceived += OnHttpTriggerReceived; // 正式绑定！
-            }
-            else
-            {
-                AddLog("警告：未找到全局指挥官节点，请确保已配置。");
-            }
-
-            BuildEngine();
-        }
-
-        private void TriggerModeRadio_Unchecked(object sender, RoutedEventArgs e)
-        {
-            isTriggerMode = false;
-            AddLog("切换到手动模式");
-
-            // 【关键解绑步骤】：手动模式下，不再处理外部自动触发
-            var tcpNode = nodes.Values.OfType<TcpCommandNode>().FirstOrDefault();
-            if (tcpNode != null)
-            {
-                // 1. 解绑 TCP 事件
+                // 先拔掉所有对讲机线，防止重复接收
                 tcpNode.MessageReceived -= OnTriggerMessageReceived;
-
-                // 2. 解绑 HTTP 事件
                 tcpNode.HttpMessageReceived -= OnHttpTriggerReceived;
+
+                if (TcpTriggerModeRadio.IsChecked == true)
+                {
+                    AddLog("【系统锁定】已切换至 TCP 触发模式。等待本地 TCP 信号...");
+                    tcpNode.MessageReceived += OnTriggerMessageReceived;
+                }
+                else if (HttpTriggerModeRadio.IsChecked == true)
+                {
+                    AddLog("【系统锁定】已切换至 上位机模式。等待上位机 HTTP 传图...");
+                    tcpNode.HttpMessageReceived += OnHttpTriggerReceived;
+                }
+                else
+                {
+                    AddLog("【系统解锁】已切换至 手动模式。您可以自由修改配置与连线。");
+                }
+            }
+            else if (!isManual)
+            {
+                AddLog("警告：您尚未在画布中配置全局通信节点，自动模式将无法接收外部信号！");
             }
 
             BuildEngine();

@@ -24,22 +24,27 @@ namespace ModelHotSwapWorkflow.Models
         /// </summary>
         public override async Task<object> Process(object input)
         {
-            // 【核心魔术】：如果是上位机通过 HTTP 空投进来的张量包裹，直接免检放行！
-            if (input is TensorPayload injectedPayload)
+            // 1. 如果是从上位机（HTTP）传过来的张量包裹，直接验收放行！
+            if (input is TensorPayload injectedPayload && injectedPayload.BaseTensor != null)
             {
-                return injectedPayload; // 直接发往下游二阶段模型！
+                return injectedPayload;
             }
 
-            // ==========================================
-            // 下面保留原有的本地测试逻辑 (通过 TCP 触发时，读取本地硬盘的测试图)
+            // 2. 否则（TCP触发 或是 手动模式），老老实实去读节点里配置的本地硬盘图片
             if (string.IsNullOrEmpty(ImagePath) || !System.IO.File.Exists(ImagePath))
-                throw new Exception($"无法加载图像文件，请检查路径: {ImagePath}");
+            {
+                throw new Exception($"图像源 [{Name}] 无法加载本地图像，请检查路径: {ImagePath}");
+            }
 
-            OpenCvSharp.Mat tensor = OpenCvSharp.Cv2.ImRead(ImagePath, OpenCvSharp.ImreadModes.Color);
-            if (tensor.Empty()) throw new Exception($"OpenCV 无法解析该图像文件: {ImagePath}");
+            // 读取硬盘图像
+            Mat tensor = Cv2.ImRead(ImagePath, ImreadModes.Color);
+            if (tensor.Empty())
+            {
+                throw new Exception($"[解码失败] OpenCV 无法解析该图像文件: {ImagePath}");
+            }
 
-            GlobalGallery.LastOriginalImage = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(tensor);
-
+            // 存入全局画廊并打包发送
+            GlobalGallery.LastOriginalImage = BitmapConverter.ToBitmap(tensor);
             return new TensorPayload { BaseTensor = tensor, RoiResults = null };
         }
     }

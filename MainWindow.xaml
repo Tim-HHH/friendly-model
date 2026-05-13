@@ -8,12 +8,48 @@
         Background="#1E1E1E">
 
     <Window.Resources>
+
+        <Style TargetType="ListBox">
+            <Setter Property="Background" Value="Transparent"/>
+            <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBox">
+                        <Border Background="{TemplateBinding Background}"
+                                BorderBrush="{TemplateBinding BorderBrush}"
+                                BorderThickness="{TemplateBinding BorderThickness}">
+                            <ScrollViewer Focusable="False" Padding="{TemplateBinding Padding}">
+                                <ItemsPresenter />
+                            </ScrollViewer>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
+            <Style.Triggers>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.3"/>
+                </Trigger>
+            </Style.Triggers>
+        </Style>
+
         <Style x:Key="ToolboxItemStyle" TargetType="ListBoxItem">
             <Setter Property="Padding" Value="10"/>
             <Setter Property="Margin" Value="2"/>
             <Setter Property="Background" Value="#333333"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="ListBoxItem">
+                        <Border Background="{TemplateBinding Background}" 
+                                Padding="{TemplateBinding Padding}" 
+                                CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Left" VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#444444"/>
@@ -27,12 +63,28 @@
             <Setter Property="Background" Value="#3E3E42"/>
             <Setter Property="Foreground" Value="White"/>
             <Setter Property="BorderThickness" Value="0"/>
+            <Setter Property="Template">
+                <Setter.Value>
+                    <ControlTemplate TargetType="Button">
+                        <Border Background="{TemplateBinding Background}" 
+                                Padding="{TemplateBinding Padding}" 
+                                CornerRadius="3">
+                            <ContentPresenter HorizontalAlignment="Center" VerticalAlignment="Center"
+                                              TextElement.Foreground="{TemplateBinding Foreground}"/>
+                        </Border>
+                    </ControlTemplate>
+                </Setter.Value>
+            </Setter>
             <Style.Triggers>
                 <Trigger Property="IsMouseOver" Value="True">
                     <Setter Property="Background" Value="#505050"/>
                 </Trigger>
+                <Trigger Property="IsEnabled" Value="False">
+                    <Setter Property="Opacity" Value="0.3"/>
+                </Trigger>
             </Style.Triggers>
         </Style>
+
     </Window.Resources>
 
     <Grid>
@@ -50,17 +102,18 @@
 
                     <Separator Width="20" Margin="15,10" Background="#555555"/>
 
-                    <RadioButton x:Name="ManualModeRadio" Content="手动模式" Foreground="White" VerticalAlignment="Center" Margin="5" IsChecked="True" Unchecked="TriggerModeRadio_Unchecked"/>
-                    <RadioButton x:Name="TriggerModeRadio" Content="TCP 触发模式" Foreground="White" VerticalAlignment="Center" Margin="5" Checked="TriggerModeRadio_Checked"/>
+                    <RadioButton x:Name="ManualModeRadio" Content="手动模式" Foreground="White" VerticalAlignment="Center" Margin="5" IsChecked="True" Checked="ModeChanged"/>
+                    <RadioButton x:Name="TcpTriggerModeRadio" Content="TCP 触发模式" Foreground="White" VerticalAlignment="Center" Margin="5" Checked="ModeChanged"/>
+                    <RadioButton x:Name="HttpTriggerModeRadio" Content="上位机模式" Foreground="White" VerticalAlignment="Center" Margin="5" Checked="ModeChanged"/>
 
-                    <Button Content="配置指令映射" Click="OpenTcpMapping_Click" Style="{StaticResource ModernButtonStyle}" Margin="20,0,0,0" ToolTip="设置TCP指令与图像源的对应关系"/>
+                    <Button x:Name="BtnConfig" Content="配置指令映射" Click="OpenTcpMapping_Click" Style="{StaticResource ModernButtonStyle}" Margin="20,0,0,0" ToolTip="设置TCP指令与图像源的对应关系"/>
                 </StackPanel>
 
                 <StackPanel Orientation="Horizontal" HorizontalAlignment="Right">
-                    <Button Content="导入工作流" Click="Import_Click" Style="{StaticResource ModernButtonStyle}"/>
-                    <Button Content="导出工作流" Click="Export_Click" Style="{StaticResource ModernButtonStyle}"/>
-                    <Button Content="清空画布" Click="ClearCanvas_Click" Style="{StaticResource ModernButtonStyle}"/>
-                    <Button Content="▶ 运行一次" Click="RunWorkflow_Click" Background="#007ACC" Style="{StaticResource ModernButtonStyle}" FontWeight="Bold"/>
+                    <Button x:Name="BtnImport" Content="导入工作流" Click="Import_Click" Style="{StaticResource ModernButtonStyle}"/>
+                    <Button x:Name="BtnExport" Content="导出工作流" Click="Export_Click" Style="{StaticResource ModernButtonStyle}"/>
+                    <Button x:Name="BtnClear" Content="清空画布" Click="ClearCanvas_Click" Style="{StaticResource ModernButtonStyle}"/>
+                    <Button x:Name="BtnRun" Content="▶ 运行一次" Click="RunWorkflow_Click" Background="#007ACC" Style="{StaticResource ModernButtonStyle}" FontWeight="Bold"/>
                 </StackPanel>
             </Grid>
         </Border>
