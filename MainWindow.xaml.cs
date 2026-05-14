@@ -527,7 +527,13 @@ namespace ModelHotSwapWorkflow
         }
 
 
-
+        private void BtnOpenSlicer_Click(object sender, RoutedEventArgs e)
+        {
+            // 确保您已经按上一轮的建议，新建了 Views.ModelSlicerWindow 窗口
+            var slicerWindow = new Views.ModelSlicerWindow();
+            slicerWindow.Owner = this; // 保证在主界面正中间弹出来
+            slicerWindow.ShowDialog(); // 使用阻塞式弹窗，切完关掉再继续画图
+        }
 
         private void ToolboxList_PreviewMouseDoubleClick(object sender, MouseButtonEventArgs e)
         {

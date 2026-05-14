@@ -10,6 +10,7 @@
 
   <ItemGroup>
     <PackageReference Include="Microsoft.ML.OnnxRuntime.Gpu" Version="1.25.1" />
+    <PackageReference Include="Microsoft.Web.WebView2" Version="1.0.3967.48" />
     <PackageReference Include="OpenCvSharp4.Extensions" Version="4.13.0.20260330" />
     <PackageReference Include="OpenCvSharp4.Windows" Version="4.13.0.20260302" />
     <PackageReference Include="Serilog" Version="4.3.1" />
@@ -21,6 +22,12 @@
 
   <ItemGroup>
     <Folder Include="Configs\" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="model_slicer.py">
+      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+    </None>
   </ItemGroup>
 
 </Project>

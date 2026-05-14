@@ -18,4 +18,7 @@
     <Import Project="$(NuGetPackageRoot)\microsoft.ml.onnxruntime.gpu.linux\1.25.1\buildTransitive\netstandard2.1\Microsoft.ML.OnnxRuntime.Gpu.Linux.props" Condition="Exists('$(NuGetPackageRoot)\microsoft.ml.onnxruntime.gpu.linux\1.25.1\buildTransitive\netstandard2.1\Microsoft.ML.OnnxRuntime.Gpu.Linux.props')" />
     <Import Project="$(NuGetPackageRoot)\microsoft.ml.onnxruntime.gpu\1.25.1\buildTransitive\netstandard2.1\Microsoft.ML.OnnxRuntime.Gpu.props" Condition="Exists('$(NuGetPackageRoot)\microsoft.ml.onnxruntime.gpu\1.25.1\buildTransitive\netstandard2.1\Microsoft.ML.OnnxRuntime.Gpu.props')" />
   </ImportGroup>
+  <PropertyGroup Condition=" '$(ExcludeRestorePackageImports)' != 'true' ">
+    <PkgMicrosoft_Web_WebView2 Condition=" '$(PkgMicrosoft_Web_WebView2)' == '' ">D:\C#\NuGetPackages\microsoft.web.webview2\1.0.3967.48</PkgMicrosoft_Web_WebView2>
+  </PropertyGroup>
 </Project>

@@ -54,6 +54,10 @@
               "target": "Package",
               "version": "[1.25.1, )"
             },
+            "Microsoft.Web.WebView2": {
+              "target": "Package",
+              "version": "[1.0.3967.48, )"
+            },
             "OpenCvSharp4.Extensions": {
               "target": "Package",
               "version": "[4.13.0.20260330, )"

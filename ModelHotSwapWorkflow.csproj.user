@@ -22,6 +22,12 @@
     <Compile Update="Views\ModelConfigDialog.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
+    <Compile Update="Views\ModelSlicerWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Update="Views\NetronViewerWindow.xaml.cs">
+      <SubType>Code</SubType>
+    </Compile>
     <Compile Update="Views\NodeControl.xaml.cs">
       <SubType>Code</SubType>
     </Compile>
@@ -49,6 +55,12 @@
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Views\ModelConfigDialog.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Views\ModelSlicerWindow.xaml">
+      <SubType>Designer</SubType>
+    </Page>
+    <Page Update="Views\NetronViewerWindow.xaml">
       <SubType>Designer</SubType>
     </Page>
     <Page Update="Views\NodeControl.xaml">

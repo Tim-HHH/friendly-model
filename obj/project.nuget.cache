@@ -1,6 +1,6 @@
 {
   "version": 2,
-  "dgSpecHash": "101eDTRctCU=",
+  "dgSpecHash": "l5c0W2Dd8Ec=",
   "success": true,
   "projectFilePath": "D:\\desktop2025\\Code\\ModelHotSwapWorkflow\\ModelHotSwapWorkflow\\ModelHotSwapWorkflow.csproj",
   "expectedPackageFiles": [
@@ -8,6 +8,7 @@
     "D:\\C#\\NuGetPackages\\microsoft.ml.onnxruntime.gpu.linux\\1.25.1\\microsoft.ml.onnxruntime.gpu.linux.1.25.1.nupkg.sha512",
     "D:\\C#\\NuGetPackages\\microsoft.ml.onnxruntime.gpu.windows\\1.25.1\\microsoft.ml.onnxruntime.gpu.windows.1.25.1.nupkg.sha512",
     "D:\\C#\\NuGetPackages\\microsoft.ml.onnxruntime.managed\\1.25.1\\microsoft.ml.onnxruntime.managed.1.25.1.nupkg.sha512",
+    "D:\\C#\\NuGetPackages\\microsoft.web.webview2\\1.0.3967.48\\microsoft.web.webview2.1.0.3967.48.nupkg.sha512",
     "D:\\C#\\NuGetPackages\\microsoft.win32.systemevents\\10.0.7\\microsoft.win32.systemevents.10.0.7.nupkg.sha512",
     "D:\\C#\\NuGetPackages\\opencvsharp4\\4.13.0.20260330\\opencvsharp4.4.13.0.20260330.nupkg.sha512",
     "D:\\C#\\NuGetPackages\\opencvsharp4.extensions\\4.13.0.20260330\\opencvsharp4.extensions.4.13.0.20260330.nupkg.sha512",

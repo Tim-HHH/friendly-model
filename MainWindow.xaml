@@ -114,6 +114,7 @@
                     <Button x:Name="BtnImport" Content="导入工作流" Click="Import_Click" Style="{StaticResource ModernButtonStyle}"/>
                     <Button x:Name="BtnExport" Content="导出工作流" Click="Export_Click" Style="{StaticResource ModernButtonStyle}"/>
                     <Button x:Name="BtnClear" Content="清空画布" Click="ClearCanvas_Click" Style="{StaticResource ModernButtonStyle}"/>
+                    
                     <Button x:Name="BtnRun" Content="▶ 运行一次" Click="RunWorkflow_Click" Background="#007ACC" Style="{StaticResource ModernButtonStyle}" FontWeight="Bold"/>
                 </StackPanel>
             </Grid>
@@ -139,6 +140,18 @@
                         <ListBoxItem Tag="Action" Content="⚡ 动作执行节点"/>
                         <ListBoxItem Tag="DisplayNode" Content="📺 结果显示节点"/>
                     </ListBox>
+                    <Border BorderBrush="#444" BorderThickness="0,1,0,0" Margin="10,20,10,0" Padding="0,15,0,0">
+                        <Button x:Name="BtnOpenSlicer" Content="✂️ AI 模型智能切割台" Height="40" 
+                                Click="BtnOpenSlicer_Click" Background="#9B59B6" Foreground="White" 
+                                FontWeight="Bold" BorderThickness="0" Cursor="Hand"
+                                ToolTip="独立的离线模型切割工具，用于生成 Backbone 和 Head">
+                            <Button.Resources>
+                                <Style TargetType="Border">
+                                    <Setter Property="CornerRadius" Value="4"/>
+                                </Style>
+                            </Button.Resources>
+                        </Button>
+                    </Border>
                 </StackPanel>
             </Border>
 

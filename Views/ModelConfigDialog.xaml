@@ -1,11 +1,10 @@
 ﻿<Window x:Class="ModelHotSwapWorkflow.Views.ModelConfigDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="深度学习模型节点配置 (Dual-Engine)" SizeToContent="WidthAndHeight" MinWidth="450" MinHeight="300"
-        WindowStartupLocation="CenterOwner" 
-        ResizeMode="NoResize" 
+        Title="AI 模型节点配置"  Height="600" Width="600"
+        WindowStartupLocation="CenterOwner" ResizeMode="NoResize"
         Style="{StaticResource StandardDialogStyle}">
-    <Grid Margin="15">
+    <Grid Margin="20">
         <Grid.RowDefinitions>
             <RowDefinition Height="Auto"/>
             <RowDefinition Height="Auto"/>
@@ -14,61 +13,69 @@
             <RowDefinition Height="Auto"/>
         </Grid.RowDefinitions>
 
-        <GroupBox Header="基础配置 (Basic Settings)" Grid.Row="0" BorderBrush="#ACBAD1" Padding="10" Margin="0,0,0,10">
-            <Grid>
-                <Grid.RowDefinitions>
-                    <RowDefinition Height="Auto"/>
-                    <RowDefinition Height="Auto"/>
-                </Grid.RowDefinitions>
-                <StackPanel Orientation="Horizontal" Grid.Row="0" Margin="0,0,0,10">
-                    <TextBlock Text="模型文件:" Width="65" VerticalAlignment="Center" Foreground="#333"/>
-                    <TextBox x:Name="TxtModelPath" Width="280" VerticalAlignment="Center" IsReadOnly="True" Background="#EAEAEA"/>
-                    <Button Content="浏览..." Width="70" Margin="10,0,0,0" Click="BtnBrowse_Click"/>
+        <GroupBox Header="核心模型配置" Grid.Row="0" Style="{StaticResource StandardGroupBoxStyle}">
+            <StackPanel Margin="5">
+                <TextBlock Text="ONNX 模型路径:"/>
+                <Grid Margin="0,5,0,0">
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition Width="*"/>
+                        <ColumnDefinition Width="Auto"/>
+                        <ColumnDefinition Width="Auto"/>
+                    </Grid.ColumnDefinitions>
+                    <TextBox x:Name="TxtModelPath" VerticalContentAlignment="Center" IsReadOnly="True" />
+                    <Button Grid.Column="1" Content="浏览" Width="60" Margin="5,0" Click="BtnBrowse_Click"
+                            Style="{StaticResource SecondaryButtonStyle}"/>
+
+                    <Button Grid.Column="2" Content="👁️ 可视化模型结构" Width="130" Click="BtnViewStructure_Click"
+                            Background="#007ACC" Foreground="White" FontWeight="Bold" Cursor="Hand">
+                        <Button.Resources>
+                            <Style TargetType="Border">
+                                <Setter Property="CornerRadius" Value="3"/>
+                            </Style>
+                        </Button.Resources>
+                    </Button>
+                </Grid>
+            </StackPanel>
+        </GroupBox>
+
+        <GroupBox Header="推理引擎模式" Grid.Row="1" Style="{StaticResource StandardGroupBoxStyle}" Margin="0,10">
+            <StackPanel Orientation="Horizontal" Margin="5">
+                <RadioButton x:Name="RbStandard" Content="模式一：标准级联" IsChecked="True" Checked="Mode_Changed"/>
+                <RadioButton x:Name="RbSlicing" Content="模式二：特征切片共享" Margin="20,0,0,0" Checked="Mode_Changed"/>
+            </StackPanel>
+        </GroupBox>
+
+        <GroupBox x:Name="GbSlicingConfig" Header="特征空间映射参数" Grid.Row="2" Style="{StaticResource StandardGroupBoxStyle}" Visibility="Collapsed">
+            <Grid Margin="5">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <StackPanel>
+                    <TextBlock Text="计算图切片角色:"/>
+                    <ComboBox x:Name="CmbSliceRole" Margin="0,5,10,0">
+                        <ComboBoxItem Content="Backbone (特征提取)"/>
+                        <ComboBoxItem Content="Head (推理头)"/>
+                    </ComboBox>
                 </StackPanel>
-
-                <StackPanel Orientation="Horizontal" Grid.Row="1">
-                    <TextBlock Text="专注类别:" Width="65" VerticalAlignment="Center" Foreground="#333"/>
-
-                    <ComboBox x:Name="CmbTargetClass" Width="150" VerticalAlignment="Center" IsEditable="True" 
-                              ToolTip="展开下拉列表选择，或手动输入类别名"/>
-
-                    <TextBlock Text="(自动解析配套名单，支持手动覆盖)" Foreground="#888" VerticalAlignment="Center" Margin="10,0,0,0" FontSize="11"/>
+                <StackPanel Grid.Column="1">
+                    <TextBlock Text="降采样步长 (Stride):"/>
+                    <TextBox x:Name="TxtStride" Text="8" Margin="0,5,0,0" VerticalContentAlignment="Center"/>
                 </StackPanel>
             </Grid>
         </GroupBox>
 
-        <GroupBox Header="推理引擎架构 (Engine Architecture)" Grid.Row="1" BorderBrush="#007ACC" Padding="10" Margin="0,0,0,10">
-            <StackPanel Orientation="Vertical">
-                <RadioButton x:Name="RbModeStandard" Content="模式一：标准像素级联 (零拷贝原图裁剪 - 适用独立训练模型)" 
-                             FontWeight="Bold" Foreground="#333" Margin="0,5" Checked="EngineMode_Changed"/>
-                <RadioButton x:Name="RbModeSlicing" Content="模式二：特征切片共享 (动态计算图手术 - 适用多任务大模型)" 
-                             FontWeight="Bold" Foreground="#007ACC" Margin="0,5" Checked="EngineMode_Changed"/>
+        <GroupBox Header="可视化类别关注 (过滤机制)" Grid.Row="3" Style="{StaticResource StandardGroupBoxStyle}" Margin="0,10">
+            <StackPanel Margin="5">
+                <TextBlock Text="专注类别 ID (留空则全显):"/>
+                <ComboBox x:Name="CmbTargetClass" IsEditable="True" Margin="0,5,0,0" VerticalContentAlignment="Center" />
+                <TextBlock Text="提示：设置后，系统将忽略非专注类别的推理结果。" Margin="0,5" Foreground="Gray" FontSize="10"/>
             </StackPanel>
         </GroupBox>
 
-        <Border x:Name="BrdAdvancedSlicing" Grid.Row="2" Background="#E6F2FF" BorderBrush="#99CCFF" BorderThickness="1" CornerRadius="4" Padding="10" Visibility="Collapsed">
-            <StackPanel Orientation="Vertical">
-                <TextBlock Text="计算图切片高级配置" FontWeight="Bold" Foreground="#0050B3" Margin="0,0,0,10"/>
-
-                <StackPanel Orientation="Horizontal" Margin="0,0,0,10">
-                    <TextBlock Text="切片角色:" Width="65" VerticalAlignment="Center" Foreground="#333"/>
-                    <ComboBox x:Name="CmbSliceRole" Width="200" SelectionChanged="SliceRole_SelectionChanged">
-                        <ComboBoxItem Content="一阶段：主干网络 (Backbone)"/>
-                        <ComboBoxItem Content="二阶段：检测头 (Detection Head)"/>
-                    </ComboBox>
-                </StackPanel>
-
-                <StackPanel x:Name="PnlStride" Orientation="Horizontal">
-                    <TextBlock Text="映射步长:" Width="65" VerticalAlignment="Center" Foreground="#333"/>
-                    <TextBox x:Name="TxtStride" Width="80" VerticalAlignment="Center" Text="8"/>
-                    <TextBlock Text="(RoI Align 降采样倍数, 如 8, 16, 32)" Foreground="#666" VerticalAlignment="Center" Margin="10,0,0,0" FontSize="11"/>
-                </StackPanel>
-            </StackPanel>
-        </Border>
-
-        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,15,0,0">
-            <Button Content="确定配置" Width="100" Height="35" Click="BtnOk_Click" Background="#007ACC" Foreground="White" BorderThickness="0" Margin="0,0,10,0"/>
-            <Button Content="取消" Width="80" Height="35" Click="BtnCancel_Click" Background="#DDDDDD"/>
+        <StackPanel Grid.Row="4" Orientation="Horizontal" HorizontalAlignment="Right" Margin="0,10,0,0">
+            <Button Content="保存配置" Width="100" Click="BtnOk_Click" Style="{StaticResource PrimaryButtonStyle}" Margin="0,0,10,0"/>
+            <Button Content="取消" Width="80" Click="BtnCancel_Click" Style="{StaticResource SecondaryButtonStyle}"/>
         </StackPanel>
     </Grid>
 </Window>

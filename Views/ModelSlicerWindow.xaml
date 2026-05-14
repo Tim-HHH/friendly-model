@@ -1,0 +1,57 @@
+﻿<Window x:Class="ModelHotSwapWorkflow.Views.ModelSlicerWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="🛠️ AI 模型智能切割台 (Model Slicer)" Height="500" Width="600"
+        WindowStartupLocation="CenterScreen" Background="#F5F6F8" ResizeMode="NoResize">
+    <Grid Margin="20">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"/>
+        </Grid.RowDefinitions>
+
+        <GroupBox Header="第一步：加载原始模型" Grid.Row="0" Margin="0,0,0,15" Padding="10">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"/>
+                    <ColumnDefinition Width="80"/>
+                </Grid.ColumnDefinitions>
+                <TextBox x:Name="TxtInputModel" IsReadOnly="True" VerticalContentAlignment="Center" Height="28"/>
+                <Button Grid.Column="1" Content="📁 浏览" Margin="10,0,0,0" Click="BtnBrowse_Click"/>
+            </Grid>
+        </GroupBox>
+
+        <GroupBox Header="第二步：选择模型架构" Grid.Row="1" Margin="0,0,0,15" Padding="10">
+            <StackPanel>
+                <ComboBox x:Name="CmbPresetType" Height="28" SelectionChanged="CmbPresetType_SelectionChanged" SelectedIndex="0">
+                    <ComboBoxItem Content="YOLOv8 (系统自动寻址 Backbone)"/>
+                    <ComboBoxItem Content="YOLOv5 (系统自动寻址 Backbone)"/>
+                    <ComboBoxItem Content="YOLOv11 (系统自动寻址 Backbone)"/>
+                    <ComboBoxItem Content="YOLOv12 (系统自动寻址 Backbone)"/>
+                    <ComboBoxItem Content="自定义节点 (需手动指定切分点)"/>
+                </ComboBox>
+
+                <StackPanel x:Name="PnlCustomNode" Margin="0,10,0,0" Visibility="Collapsed">
+                    <TextBlock Text="请输入准确的节点名称 (Name):" Foreground="Gray" Margin="0,0,0,5"/>
+                    <TextBox x:Name="TxtCustomNode" Height="28" VerticalContentAlignment="Center" 
+                             ToolTip="请使用 Netron 工具查看节点名称"/>
+                </StackPanel>
+            </StackPanel>
+        </GroupBox>
+
+        <Button x:Name="BtnStartSlice" Grid.Row="2" Content="⚡ 一键执行物理切片" Height="45" 
+                Background="#28A745" Foreground="White" FontSize="16" FontWeight="Bold" 
+                Margin="0,10,0,15" BorderThickness="0" Cursor="Hand" Click="BtnStartSlice_Click"/>
+
+        <GroupBox Header="控制台日志 (Python 脚本反馈)" Grid.Row="3" Padding="5">
+            <TextBox x:Name="TxtLog" IsReadOnly="True" VerticalScrollBarVisibility="Auto" 
+                     Background="#1E1E1E" Foreground="#00FF00" FontFamily="Consolas" 
+                     TextWrapping="Wrap" BorderThickness="0"/>
+        </GroupBox>
+
+        <TextBlock Grid.Row="4" Text="提示: 切片成功后，将会在原模型同级目录下生成 backbone.onnx 和 head.onnx" 
+                   Foreground="Gray" FontSize="11" HorizontalAlignment="Center" Margin="0,10,0,0"/>
+    </Grid>
+</Window>

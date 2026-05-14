@@ -99,6 +99,25 @@
           }
         }
       },
+      "Microsoft.Web.WebView2/1.0.3967.48": {
+        "runtimeTargets": {
+          "runtimes/win-arm64/native/WebView2Loader.dll": {
+            "rid": "win-arm64",
+            "assetType": "native",
+            "fileVersion": "1.0.3967.48"
+          },
+          "runtimes/win-x64/native/WebView2Loader.dll": {
+            "rid": "win-x64",
+            "assetType": "native",
+            "fileVersion": "1.0.3967.48"
+          },
+          "runtimes/win-x86/native/WebView2Loader.dll": {
+            "rid": "win-x86",
+            "assetType": "native",
+            "fileVersion": "1.0.3967.48"
+          }
+        }
+      },
       "Microsoft.Win32.SystemEvents/10.0.7": {
         "runtime": {
           "lib/net8.0/Microsoft.Win32.SystemEvents.dll": {
@@ -306,6 +325,13 @@
       "sha512": "sha512-Jz9UuzAWMFHrH0Gsqx+6aoxTYXeaqIOr+5SOxEhMDKCLmZKVoQo/dazQ8oeiIVy8CzFFfU0vI6vamv5xtc6ApQ==",
       "path": "microsoft.ml.onnxruntime.managed/1.25.1",
       "hashPath": "microsoft.ml.onnxruntime.managed.1.25.1.nupkg.sha512"
+    },
+    "Microsoft.Web.WebView2/1.0.3967.48": {
+      "type": "package",
+      "serviceable": true,
+      "sha512": "sha512-b7dZ5kZ9bfU5Yo11M8feCOoiyalXCN+2Gsw674RBDBmQ2dJV5EOXb8/ivN2LuLJ+VO2V7FmK6l6LsyfEnG1lXw==",
+      "path": "microsoft.web.webview2/1.0.3967.48",
+      "hashPath": "microsoft.web.webview2.1.0.3967.48.nupkg.sha512"
     },
     "Microsoft.Win32.SystemEvents/10.0.7": {
       "type": "package",

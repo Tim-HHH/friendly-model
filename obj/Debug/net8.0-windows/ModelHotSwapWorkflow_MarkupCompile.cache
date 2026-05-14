@@ -10,11 +10,11 @@ none
 false
 TRACE;DEBUG;NET;NET8_0;NETCOREAPP
 D:\desktop2025\Code\ModelHotSwapWorkflow\ModelHotSwapWorkflow\App.xaml
-9741111084
-
-37180090535
-211-1846708278
-MainWindow.xaml;Views\ActionConfigDialog.xaml;Views\BranchConfigDialog.xaml;Views\DisplayConfigDialog.xaml;Views\ImageSourceConfigDialog.xaml;Views\ModelConfigDialog.xaml;Views\NodeControl.xaml;Views\SelectableLine.xaml;Views\TcpConfigDialog.xaml;
+11-1312176063
+3-1298391382
+40-1008121211
+214-1395996060
+MainWindow.xaml;Views\ActionConfigDialog.xaml;Views\BranchConfigDialog.xaml;Views\DisplayConfigDialog.xaml;Views\ImageSourceConfigDialog.xaml;Views\ModelConfigDialog.xaml;Views\ModelSlicerWindow.xaml;Views\NetronViewerWindow.xaml;Views\NodeControl.xaml;Views\SelectableLine.xaml;Views\TcpConfigDialog.xaml;
 
 False
 
