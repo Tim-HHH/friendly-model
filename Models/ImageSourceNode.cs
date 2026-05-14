@@ -24,28 +24,28 @@ namespace ModelHotSwapWorkflow.Models
         /// </summary>
         public override async Task<object> Process(object input)
         {
-            // 1. 如果是从上位机（HTTP）传过来的张量包裹，直接验收放行！
-            if (input is TensorPayload injectedPayload && injectedPayload.BaseTensor != null)
+            // 1. 如果上游（比如TCP全局指挥官的 HTTP 传图）已经把张量送过来了，直接透传放行！
+            if (input is TensorPayload payload && payload.BaseTensor != null && !payload.BaseTensor.Empty())
             {
-                return injectedPayload;
+                return payload;
             }
 
-            // 2. 否则（TCP触发 或是 手动模式），老老实实去读节点里配置的本地硬盘图片
-            if (string.IsNullOrEmpty(ImagePath) || !System.IO.File.Exists(ImagePath))
+            // 2. 如果没有外部供图，则降级为本地硬盘读取模式
+            return await Task.Run(() =>
             {
-                throw new Exception($"图像源 [{Name}] 无法加载本地图像，请检查路径: {ImagePath}");
-            }
+                if (string.IsNullOrEmpty(ImagePath) || !System.IO.File.Exists(ImagePath))
+                    throw new Exception($"[图像源节点] 路径无效或文件不存在: {ImagePath}");
 
-            // 读取硬盘图像
-            Mat tensor = Cv2.ImRead(ImagePath, ImreadModes.Color);
-            if (tensor.Empty())
-            {
-                throw new Exception($"[解码失败] OpenCV 无法解析该图像文件: {ImagePath}");
-            }
+                // 高速读取硬盘图像
+                Mat tensor = Cv2.ImRead(ImagePath, ImreadModes.Color);
+                if (tensor.Empty())
+                {
+                    throw new Exception($"[解码失败] OpenCV 无法解析该图像文件: {ImagePath}");
+                }
 
-            // 存入全局画廊并打包发送
-            GlobalGallery.LastOriginalImage = BitmapConverter.ToBitmap(tensor);
-            return new TensorPayload { BaseTensor = tensor, RoiResults = null };
+                // 【核心修复】：直接装进张量总线包裹发往下一站！彻底抛弃落后的 GlobalGallery！
+                return new TensorPayload { BaseTensor = tensor, RoiResults = null };
+            });
         }
     }
 }

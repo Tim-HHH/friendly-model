@@ -31,6 +31,9 @@ namespace ModelHotSwapWorkflow.Models
     /// <summary>
     /// 工作流节点的基础序列化数据模型
     /// </summary>
+    /// <summary>
+    /// 工作流节点的基础序列化数据模型
+    /// </summary>
     public class NodeData
     {
         public string Id { get; set; }
@@ -48,8 +51,16 @@ namespace ModelHotSwapWorkflow.Models
         public bool IsServer { get; set; }
         public Dictionary<string, string> ConditionTargetMap { get; set; }
         public string DefaultTargetNodeId { get; set; }
-        public string ActionName { get; set; }
-        public string ActionParameter { get; set; }
+
+        // 【更新】：动作节点 (ActionNode) 的新属性
+        public int ActionType { get; set; } // 用 int 保存枚举，方便 JSON 序列化
+        public string CustomMessage { get; set; }
+        public string ExportCsvPath { get; set; }
+
+        // 【新增】：结果显示节点 (DisplayNode) 的新属性
+        public bool DrawBoundingBox { get; set; }
+        public bool DrawLabel { get; set; }
+        public string SaveImagePath { get; set; }
     }
 
     /// <summary>

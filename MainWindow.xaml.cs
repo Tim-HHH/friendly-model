@@ -211,6 +211,7 @@ namespace ModelHotSwapWorkflow
                 };
 
                 // 根据具体类型填充配置
+                // 根据具体类型填充配置
                 switch (node)
                 {
                     case ImageSourceNode img:
@@ -230,10 +231,17 @@ namespace ModelHotSwapWorkflow
                         nodeData.DefaultTargetNodeId = br.DefaultTargetNodeId;
                         break;
                     case ActionNode act:
-                        nodeData.ActionName = act.ActionName;
-                        nodeData.ActionParameter = act.ActionParameter;
+                        // 【修复】：保存新的动作参数
+                        nodeData.ActionType = (int)act.ActionType;
+                        nodeData.CustomMessage = act.CustomMessage;
+                        nodeData.ExportCsvPath = act.ExportCsvPath;
                         break;
-                        // DisplayNode 无额外配置
+                    case DisplayNode disp:
+                        // 【新增】：保存显示节点的配置
+                        nodeData.DrawBoundingBox = disp.DrawBoundingBox;
+                        nodeData.DrawLabel = disp.DrawLabel;
+                        nodeData.SaveImagePath = disp.SaveImagePath;
+                        break;
                 }
 
                 workflowData.Nodes.Add(nodeData);
@@ -316,7 +324,13 @@ namespace ModelHotSwapWorkflow
                         // 特殊节点的额外初始化
                         if (node is DisplayNode disp)
                         {
-                            disp.OnImageUpdated += img => Dispatcher.Invoke(() => ResultImage.Source = ImageHelper.ToBitmapSource(img));
+                            disp.OnImageProcessed += mat => Dispatcher.Invoke(() =>
+                            {
+                                using (var bmp = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(mat))
+                                {
+                                    ResultImage.Source = ImageHelper.ToBitmapSource(bmp);
+                                }
+                            });
                         }
                         else if (node is ActionNode act)
                         {
@@ -407,6 +421,7 @@ namespace ModelHotSwapWorkflow
         }
 
         // 根据数据创建节点实例（不设置Id）
+        // 根据数据创建节点实例（不设置Id）
         private NodeBase CreateNodeFromData(NodeData nd)
         {
             NodeBase node = null;
@@ -416,14 +431,20 @@ namespace ModelHotSwapWorkflow
                     node = new ImageSourceNode { ImagePath = nd.ImagePath };
                     break;
                 case "ModelNode":
-                    node = new ModelNode() 
+                    node = new ModelNode()
                     {
                         ModelPath = nd.ModelPath,
                         ModelName = nd.ModelName
                     };
                     break;
                 case "DisplayNode":
-                    node = new DisplayNode();
+                    // 【修复】：读取显示配置
+                    node = new DisplayNode
+                    {
+                        DrawBoundingBox = nd.DrawBoundingBox,
+                        DrawLabel = nd.DrawLabel,
+                        SaveImagePath = nd.SaveImagePath
+                    };
                     break;
                 case "TcpCommand":
                     node = new TcpCommandNode(AddLog) { Port = nd.Port, Address = nd.Address, IsServer = nd.IsServer };
@@ -436,17 +457,24 @@ namespace ModelHotSwapWorkflow
                     };
                     break;
                 case "Action":
-                    node = new ActionNode { ActionName = nd.ActionName, ActionParameter = nd.ActionParameter };
+                    // 【修复】：读取新的动作配置
+                    node = new ActionNode
+                    {
+                        ActionType = (ActionTargetType)nd.ActionType,
+                        CustomMessage = nd.CustomMessage,
+                        ExportCsvPath = nd.ExportCsvPath
+                    };
                     break;
                 default: return null;
             }
             node.Name = nd.Name;
             node.X = nd.X;
             node.Y = nd.Y;
-            node.ConfigDisplay = GetConfigDisplay(node); // 辅助方法，更新显示文本
+            node.ConfigDisplay = GetConfigDisplay(node);
             return node;
         }
 
+        // 生成配置显示文本
         // 生成配置显示文本
         private string GetConfigDisplay(NodeBase node)
         {
@@ -456,15 +484,18 @@ namespace ModelHotSwapWorkflow
                     return string.IsNullOrEmpty(img.ImagePath) ? "双击选择图像" : System.IO.Path.GetFileName(img.ImagePath);
                 case ModelNode mdl:
                     return string.IsNullOrEmpty(mdl.ModelName) ? "未选择模型" : $"模型: {mdl.ModelName}";
-                case DisplayNode _:
-                    return "结果展示";
+                case DisplayNode disp:
+                    // 【修复】：显示节点的新文本
+                    return $"[显示] 渲染框: {(disp.DrawBoundingBox ? "开" : "关")}";
                 case TcpCommandNode tcp:
                     return tcp.IsServer ? $"TCP服务端 监听:{tcp.Port}" : $"TCP客户端 {tcp.Address}:{tcp.Port}";
                 case BranchNode br:
                     var mappings = br.ConditionTargetMap.Select(kv => $"{kv.Key}->{nodes.GetValueOrDefault(kv.Value)?.Name ?? "?"}");
                     return string.IsNullOrEmpty(mappings.FirstOrDefault()) ? "未配置" : $"分支: {string.Join(", ", mappings)}";
                 case ActionNode act:
-                    return string.IsNullOrEmpty(act.ActionName) ? "未配置" : $"动作: {act.ActionName}";
+                    // 【修复】：动作节点的新文本
+                    string typeStr = act.ActionType == ActionTargetType.PrintLog ? "日志" : "存CSV";
+                    return $"[动作] {typeStr} : {act.CustomMessage}";
                 default: return "未配置";
             }
         }
@@ -845,8 +876,15 @@ namespace ModelHotSwapWorkflow
                     node = new ModelNode() { Name = $"模型_{nodes.Count + 1}", X = x, Y = y, ConfigDisplay = "未选择模型" };
                     break;
                 case "DisplayNode":
-                    node = new DisplayNode { Name = $"显示_{nodes.Count + 1}", X = x, Y = y, ConfigDisplay = "结果展示" };
-                    ((DisplayNode)node).OnImageUpdated += img => Dispatcher.Invoke(() => ResultImage.Source = ImageHelper.ToBitmapSource(img));
+                    node = new DisplayNode { Name = $"显示_{nodes.Count + 1}", X = x, Y = y, ConfigDisplay = "[显示] 渲染框: 开" };
+                    // 【修复】：把这里也同步改成 OnImageProcessed 和 Mat 转换
+                    ((DisplayNode)node).OnImageProcessed += mat => Dispatcher.Invoke(() =>
+                    {
+                        using (var bmp = OpenCvSharp.Extensions.BitmapConverter.ToBitmap(mat))
+                        {
+                            ResultImage.Source = ImageHelper.ToBitmapSource(bmp);
+                        }
+                    });
                     break;
                 case "TcpCommand":
                     node = new TcpCommandNode(AddLog) { Name = $"TCP命令_{nodes.Count + 1}", X = x, Y = y, ConfigDisplay = "端口:9999" };
@@ -855,7 +893,8 @@ namespace ModelHotSwapWorkflow
                     node = new BranchNode { Name = $"分支_{nodes.Count + 1}", X = x, Y = y, ConfigDisplay = "未配置" };
                     break;
                 case "Action":
-                    node = new ActionNode { Name = $"动作_{nodes.Count + 1}", X = x, Y = y, ConfigDisplay = "未配置" };
+                    node = new ActionNode { Name = $"动作_{nodes.Count + 1}", X = x, Y = y, ConfigDisplay = "[动作] 日志 : 检测完成" };
+                    // ...后面的事件挂载保留原样
                     ((ActionNode)node).OnActionExecuted += msg => AddLog(msg);
                     break;
                 default:
@@ -1019,7 +1058,10 @@ namespace ModelHotSwapWorkflow
                 var dialog = new ActionConfigDialog(actionNode);
                 if (dialog.ShowDialog() == true)
                 {
-                    actionNode.ConfigDisplay = $"动作: {actionNode.ActionName}";
+                    // 【关键修复】：使用新的参数来拼接节点上显示的文字
+                    string typeStr = actionNode.ActionType == ActionTargetType.PrintLog ? "日志" : "存CSV";
+                    actionNode.ConfigDisplay = $"[动作] {typeStr} : {actionNode.CustomMessage}";
+
                     control.UpdateConfigDisplay(actionNode.ConfigDisplay);
                 }
             }

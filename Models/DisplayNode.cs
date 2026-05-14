@@ -1,87 +1,104 @@
 ﻿using System;
-using System.Drawing;
+using System.IO;
 using System.Threading.Tasks;
 using OpenCvSharp;
-using OpenCvSharp.Extensions;
 
 namespace ModelHotSwapWorkflow.Models
 {
     /// <summary>
-    /// 全局图像数据中转站：用于跨节点共享原始图像与渲染结果。
-    /// </summary>
-    public static class GlobalGallery
-    {
-        /// <summary>
-        /// 最近一次推理并绘制了检测框的图像（保留以向下兼容旧架构）。
-        /// </summary>
-        public static Bitmap? LastDrawnImage { get; set; }
-
-        /// <summary>
-        /// 最近一次从源获取的原始完整图像（用于全局兜底）。
-        /// </summary>
-        public static Bitmap? LastOriginalImage { get; set; }
-    }
-
-    /// <summary>
-    /// 结果展示节点：负责解析上游传递的张量载荷，执行包围盒渲染并更新 UI。
+    /// 终端视觉渲染节点。支持动态渲染检测结果，并具备坏样本地固化存储功能。
     /// </summary>
     public class DisplayNode : NodeBase
     {
         public override string NodeType => "DisplayNode";
-
         public override Type InputType => typeof(TensorPayload);
-        public override Type OutputType => null;
+        public override Type OutputType => typeof(TensorPayload);
 
-        /// <summary>
-        /// 图像更新事件，UI 订阅此事件以刷新 Canvas 或 Image 控件。
-        /// </summary>
-        public event Action<Bitmap>? OnImageUpdated;
+        // ================= 新增配置参数 =================
+        public bool DrawBoundingBox { get; set; } = true;
+        public bool DrawLabel { get; set; } = true;
+        public string SaveImagePath { get; set; } = "";
 
-        /// <summary>
-        /// 异步解析输入载荷，执行特征图可视化并触发渲染事件。
-        /// </summary>
+        // 专门通知 UI 层刷新图片的事件
+        public event Action<Mat>? OnImageProcessed;
+
         public override async Task<object> Process(object input)
         {
-            Bitmap? imageToDisplay = null;
+            if (!(input is TensorPayload payload) || payload.BaseTensor == null)
+                return input;
 
-            // 1. 向下兼容：优先检查旧版架构遗留的全局渲染缓存
-            if (GlobalGallery.LastDrawnImage != null)
+            await Task.Run(() =>
             {
-                imageToDisplay = GlobalGallery.LastDrawnImage;
-                GlobalGallery.LastDrawnImage = null;
-            }
-            // 2. 核心渲染逻辑：解析张量包裹并执行可视化合成
-            else if (input is TensorPayload payload && payload.BaseTensor != null && !payload.BaseTensor.IsDisposed)
-            {
-                // 校验载荷中是否存在有效的感兴趣区域 (ROI) 检测结果
-                if (payload.RoiResults != null && payload.RoiResults.DetectionCount > 0)
+                // 出于安全考虑，克隆一张图用于画框显示，避免污染主线张量
+                using (Mat renderMat = payload.BaseTensor.Clone())
                 {
-                    // 调用底层 OpenCV 扩展方法，将检测框与分类标签实时绘制于张量矩阵上
-                    using (Mat drawnMat = payload.RoiResults.Visualize(payload.BaseTensor, true))
+                    bool hasDefect = false;
+
+                    // 1. 如果配置了渲染，则调用 OpenCV 在图上画框
+                    if (payload.RoiResults != null)
                     {
-                        // 转换绘制后的矩阵为 GDI+ Bitmap 供 WPF 前端消费
-                        imageToDisplay = BitmapConverter.ToBitmap(drawnMat);
+                        foreach (var result in payload.RoiResults)
+                        {
+                            if (result.Boxes.Count > 0) hasDefect = true; // 只要有框，就标记为不良图
+
+                            if (DrawBoundingBox || DrawLabel)
+                            {
+                                // 【关键修复】：使用 for 循环，通过索引 i 把坐标、名字和分数对应起来
+                                for (int i = 0; i < result.Boxes.Count; i++)
+                                {
+                                    var box = result.Boxes[i];
+
+                                    if (DrawBoundingBox)
+                                    {
+                                        Cv2.Rectangle(renderMat, new OpenCvSharp.Rect(box.X, box.Y, box.Width, box.Height), Scalar.Red, 2);
+                                    }
+
+                                    if (DrawLabel)
+                                    {
+                                        // 智能推断类别名称：优先找 ClassNames，其次找 ClassDefinitions，兜底用 ID
+                                        string labelName = $"Class_{result.ClassIds[i]}";
+                                        if (result.ClassNames != null && result.ClassNames.Count > i)
+                                        {
+                                            labelName = result.ClassNames[i];
+                                        }
+                                        else if (result.ClassDefinitions != null)
+                                        {
+                                            var def = result.ClassDefinitions.FirstOrDefault(d => d.Id == result.ClassIds[i]);
+                                            if (def != null) labelName = def.Name;
+                                        }
+
+                                        // 获取分数
+                                        float score = (result.Scores != null && result.Scores.Count > i) ? result.Scores[i] : 0f;
+
+                                        // 在图上写上黄色的字（类别名 + 分数）
+                                        Cv2.PutText(renderMat, $"{labelName} {score:F2}", new OpenCvSharp.Point(box.X, box.Y - 5), HersheyFonts.HersheySimplex, 0.7, Scalar.Yellow, 2);
+                                    }
+                                }
+                            }
+                        }
                     }
-                }
-                else
-                {
-                    // 若无检测结果，直接转换原始底层张量
-                    imageToDisplay = BitmapConverter.ToBitmap(payload.BaseTensor);
-                }
-            }
-            // 3. 兜底逻辑：处理直接传入位图的异常边际情况
-            else if (input is Bitmap bmp)
-            {
-                imageToDisplay = bmp;
-            }
 
-            // 触发事件，驱动主窗体调度器更新界面像素
-            if (imageToDisplay != null)
-            {
-                OnImageUpdated?.Invoke(imageToDisplay);
-            }
+                    // 2. 自动保存不良品图片 (自动存坏样功能)
+                    if (hasDefect && !string.IsNullOrEmpty(SaveImagePath))
+                    {
+                        try
+                        {
+                            if (!Directory.Exists(SaveImagePath)) Directory.CreateDirectory(SaveImagePath);
+                            string filename = Path.Combine(SaveImagePath, $"Defect_{DateTime.Now:yyyyMMdd_HHmmss_fff}.jpg");
+                            Cv2.ImWrite(filename, renderMat);
+                        }
+                        catch (Exception ex)
+                        {
+                            System.Diagnostics.Debug.WriteLine($"[DisplayNode] 存图失败: {ex.Message}");
+                        }
+                    }
 
-            return null;
+                    // 3. 把画好框的图扔给 UI 层显示
+                    OnImageProcessed?.Invoke(renderMat);
+                }
+            });
+
+            return payload; // 原样传给下一个节点
         }
     }
 }
