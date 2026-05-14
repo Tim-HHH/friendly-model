@@ -1,7 +1,8 @@
 ﻿<Window x:Class="ModelHotSwapWorkflow.Views.DisplayConfigDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="结果显示渲染配置" Height="300" Width="450"
+        Title="结果显示渲染配置" SizeToContent="WidthAndHeight" MinWidth="450" MinHeight="300"
+        WindowStartupLocation="CenterOwner"
         Style="{StaticResource StandardDialogStyle}">
     <Grid Margin="15">
         <Grid.RowDefinitions>

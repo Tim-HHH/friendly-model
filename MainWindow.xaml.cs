@@ -994,7 +994,7 @@ namespace ModelHotSwapWorkflow
             {
                 // 弹出咱们刚刚写的高级图像源配置对话框
                 var dialog = new Views.ImageSourceConfigDialog(imgNode);
-
+                dialog.Owner = this;
                 // ShowDialog 是阻塞式的，会等待您在窗口点击“确定”或“取消”
                 if (dialog.ShowDialog() == true)
                 {
@@ -1015,7 +1015,7 @@ namespace ModelHotSwapWorkflow
 
                 // 2. 实例化并弹出专业的模型配置对话框
                 var dialog = new Views.ModelConfigDialog(modelNode);
-
+                dialog.Owner = this;
                 if (dialog.ShowDialog() == true)
                 {
                     // 配置成功后，同步更新 UI 控件的显示状态
@@ -1028,7 +1028,7 @@ namespace ModelHotSwapWorkflow
             {
                 // 【关键修改】：同样改为直接传节点和花名册
                 var dialog = new TcpConfigDialog(tcpCmd, this.nodes.Values.ToList());
-
+                dialog.Owner = this;
                 if (dialog.ShowDialog() == true)
                 {
                     string modeText = tcpCmd.IsServer ? $"TCP:{tcpCmd.Port} HTTP:{tcpCmd.HttpPort}" : $"{tcpCmd.Address}:{tcpCmd.Port}";
@@ -1044,7 +1044,7 @@ namespace ModelHotSwapWorkflow
             {
                 // 【关键修复】：调用 .Values.ToList() 提取字典中的值集合，并转换为标准的泛型列表
                 var dialog = new BranchConfigDialog(branch, this.nodes.Values.ToList());
-
+                dialog.Owner = this;
                 if (dialog.ShowDialog() == true)
                 {
                     var mappings = branch.ConditionTargetMap.Select(kv => $"{kv.Key}->{nodes[kv.Value]?.Name}");
@@ -1056,6 +1056,7 @@ namespace ModelHotSwapWorkflow
             else if (node is ActionNode actionNode)
             {
                 var dialog = new ActionConfigDialog(actionNode);
+                dialog.Owner = this;
                 if (dialog.ShowDialog() == true)
                 {
                     // 【关键修复】：使用新的参数来拼接节点上显示的文字
@@ -1063,6 +1064,17 @@ namespace ModelHotSwapWorkflow
                     actionNode.ConfigDisplay = $"[动作] {typeStr} : {actionNode.CustomMessage}";
 
                     control.UpdateConfigDisplay(actionNode.ConfigDisplay);
+                }
+            }
+            // 6. 加上结果显示节点的配置弹出逻辑！
+            else if (node is DisplayNode dispNode)
+            {
+                var dialog = new DisplayConfigDialog(dispNode);
+                dialog.Owner = this; // 保证配置框在软件正中间弹出
+                if (dialog.ShowDialog() == true)
+                {
+                    // 配置完成后，更新界面上的文字显示
+                    control.UpdateConfigDisplay(dispNode.ConfigDisplay);
                 }
             }
         }
@@ -1456,7 +1468,7 @@ namespace ModelHotSwapWorkflow
 
             try
             {
-                string timestamp = DateTime.Now.ToString("HH:mm:ss");
+                string timestamp = DateTime.Now.ToString("HH:mm:ss.fff");
                 LogTextBox.AppendText($"[{timestamp}] {msg}\n");
                 LogTextBox.ScrollToEnd();
             }

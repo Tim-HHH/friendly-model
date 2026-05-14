@@ -1,7 +1,7 @@
 ﻿<Window x:Class="ModelHotSwapWorkflow.Views.ModelConfigDialog"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="深度学习模型节点配置 (Dual-Engine)" Height="450" Width="500" 
+        Title="深度学习模型节点配置 (Dual-Engine)" SizeToContent="WidthAndHeight" MinWidth="450" MinHeight="300"
         WindowStartupLocation="CenterOwner" 
         ResizeMode="NoResize" 
         Style="{StaticResource StandardDialogStyle}">
