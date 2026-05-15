@@ -34,7 +34,6 @@ D:\desktop2025\Code\ModelHotSwapWorkflow\ModelHotSwapWorkflow\obj\Debug\net8.0-w
 D:\desktop2025\Code\ModelHotSwapWorkflow\ModelHotSwapWorkflow\bin\Debug\net8.0-windows\runtimes\win-x86\native\WebView2Loader.dll
 D:\desktop2025\Code\ModelHotSwapWorkflow\ModelHotSwapWorkflow\bin\Debug\net8.0-windows\runtimes\win-x64\native\WebView2Loader.dll
 D:\desktop2025\Code\ModelHotSwapWorkflow\ModelHotSwapWorkflow\bin\Debug\net8.0-windows\runtimes\win-arm64\native\WebView2Loader.dll
-D:\desktop2025\Code\ModelHotSwapWorkflow\ModelHotSwapWorkflow\bin\Debug\net8.0-windows\model_slicer.py
 D:\desktop2025\Code\ModelHotSwapWorkflow\ModelHotSwapWorkflow\bin\Debug\net8.0-windows\ModelHotSwapWorkflow.exe
 D:\desktop2025\Code\ModelHotSwapWorkflow\ModelHotSwapWorkflow\bin\Debug\net8.0-windows\ModelHotSwapWorkflow.deps.json
 D:\desktop2025\Code\ModelHotSwapWorkflow\ModelHotSwapWorkflow\bin\Debug\net8.0-windows\ModelHotSwapWorkflow.runtimeconfig.json
@@ -84,3 +83,4 @@ D:\desktop2025\Code\ModelHotSwapWorkflow\ModelHotSwapWorkflow\obj\Debug\net8.0-w
 D:\desktop2025\Code\ModelHotSwapWorkflow\ModelHotSwapWorkflow\obj\Debug\net8.0-windows\ModelHotSwapWorkflow.pdb
 D:\desktop2025\Code\ModelHotSwapWorkflow\ModelHotSwapWorkflow\obj\Debug\net8.0-windows\ModelHotSwapWorkflow.genruntimeconfig.cache
 D:\desktop2025\Code\ModelHotSwapWorkflow\ModelHotSwapWorkflow\obj\Debug\net8.0-windows\ref\ModelHotSwapWorkflow.dll
+D:\desktop2025\Code\ModelHotSwapWorkflow\ModelHotSwapWorkflow\bin\Debug\net8.0-windows\model_slicer.py
