@@ -17,9 +17,20 @@
                 <Grid.ColumnDefinitions>
                     <ColumnDefinition Width="*"/>
                     <ColumnDefinition Width="80"/>
+                    <ColumnDefinition Width="140"/>
                 </Grid.ColumnDefinitions>
                 <TextBox x:Name="TxtInputModel" IsReadOnly="True" VerticalContentAlignment="Center" Height="28"/>
                 <Button Grid.Column="1" Content="📁 浏览" Margin="10,0,0,0" Click="BtnBrowse_Click"/>
+
+                <Button Grid.Column="2" Content="👁️ 可视化模型结构" Margin="10,0,0,0" Click="BtnViewStructure_Click"
+                        Background="#007ACC" Foreground="White" FontWeight="Bold" Cursor="Hand"
+                        ToolTip="使用 Netron 引擎查看模型内部结构，寻找下刀节点">
+                    <Button.Resources>
+                        <Style TargetType="Border">
+                            <Setter Property="CornerRadius" Value="3"/>
+                        </Style>
+                    </Button.Resources>
+                </Button>
             </Grid>
         </GroupBox>
 

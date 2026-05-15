@@ -20,20 +20,10 @@
                     <Grid.ColumnDefinitions>
                         <ColumnDefinition Width="*"/>
                         <ColumnDefinition Width="Auto"/>
-                        <ColumnDefinition Width="Auto"/>
                     </Grid.ColumnDefinitions>
                     <TextBox x:Name="TxtModelPath" VerticalContentAlignment="Center" IsReadOnly="True" />
                     <Button Grid.Column="1" Content="浏览" Width="60" Margin="5,0" Click="BtnBrowse_Click"
                             Style="{StaticResource SecondaryButtonStyle}"/>
-
-                    <Button Grid.Column="2" Content="👁️ 可视化模型结构" Width="130" Click="BtnViewStructure_Click"
-                            Background="#007ACC" Foreground="White" FontWeight="Bold" Cursor="Hand">
-                        <Button.Resources>
-                            <Style TargetType="Border">
-                                <Setter Property="CornerRadius" Value="3"/>
-                            </Style>
-                        </Button.Resources>
-                    </Button>
                 </Grid>
             </StackPanel>
         </GroupBox>

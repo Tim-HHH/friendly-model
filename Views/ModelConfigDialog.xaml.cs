@@ -44,14 +44,10 @@ namespace ModelHotSwapWorkflow.Views
             CmbSliceRole.SelectedIndex = (int)_node.SliceRole;
         }
 
-        // 透视镜功能
-        private void BtnViewStructure_Click(object sender, RoutedEventArgs e)
-        {
-            var viewer = new NetronViewerWindow();
-            viewer.Owner = this;
-            viewer.Show();
-            MessageBox.Show("可视化引擎已启动！您可以将当前的 .onnx 文件直接拖入弹出窗口中进行分析。", "操作提示");
-        }
+       
+        
+
+       
 
         private void BtnBrowse_Click(object sender, RoutedEventArgs e)
         {

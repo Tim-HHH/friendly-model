@@ -34,7 +34,7 @@ namespace ModelHotSwapWorkflow.Views
             if (PnlCustomNode == null) return;
 
             // 如果选择了第3项（自定义）
-            if (CmbPresetType.SelectedIndex == 2)
+            if (CmbPresetType.SelectedIndex == 4)
             {
                 PnlCustomNode.Visibility = Visibility.Visible;
             }
@@ -121,6 +121,13 @@ namespace ModelHotSwapWorkflow.Views
                 BtnStartSlice.IsEnabled = true;
                 BtnStartSlice.Content = "⚡ 一键执行物理切片";
             }
+        }
+        private void BtnViewStructure_Click(object sender, RoutedEventArgs e)
+        {
+            var viewer = new NetronViewerWindow();
+            viewer.Owner = this; // 保证在切割台正中间弹出
+            viewer.Show();
+            MessageBox.Show("可视化引擎已启动！您可以将当前的 .onnx 文件直接拖入弹出窗口中进行分析。\n\n请找到需要切分的节点，并将其 Name 填入下方的自定义节点框中。", "操作提示");
         }
 
         private void LogMessage(string message)

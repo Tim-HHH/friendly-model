@@ -26,7 +26,7 @@
 
   <ItemGroup>
     <None Update="model_slicer.py">
-      <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
     </None>
   </ItemGroup>
 
