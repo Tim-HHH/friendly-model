@@ -3,6 +3,7 @@ using System.IO;
 using System.Linq;
 using System.Windows;
 using ModelHotSwapWorkflow.Models;
+using System.Text.Json.Nodes;
 
 namespace ModelHotSwapWorkflow.Views
 {
@@ -125,6 +126,40 @@ namespace ModelHotSwapWorkflow.Views
             if (int.TryParse(TxtStride.Text, out int stride)) _node.FeatureStride = stride;
 
             _node.ConfigDisplay = $"[{(_node.EngineMode == InferenceEngineMode.StandardCascade ? "模式一" : "模式二")}] {System.IO.Path.GetFileName(_node.ModelPath)}";
+
+
+            // ====================================================================
+            // 【核心修复：将界面选择的模型，真实地写入硬盘的专属配置文件中！】
+            // ====================================================================
+            try
+            {
+                string templatePath = "model_config.json"; // 咱们的老模板
+                if (File.Exists(templatePath))
+                {
+                    // 1. 读取老模板
+                    string jsonString = File.ReadAllText(templatePath);
+                    JsonNode rootNode = JsonNode.Parse(jsonString);
+
+                    // 2. 强行把配置里的模型路径，改成您在界面上选中的新路径！
+                    // 【真正的修复点】：它确实是 JsonArray，但键名必须是 "model_path"！
+                    if (rootNode is JsonArray array && array.Count > 0)
+                    {
+                        array[0]["model_path"] = _node.ModelPath; // 严格匹配您 JSON 里的拼写
+                    }
+
+                    // 3. 另存为您刚才生成的专属文件
+                    File.WriteAllText(_node.ConfigPath, rootNode.ToString());
+                }
+                else
+                {
+                    MessageBox.Show($"警告：找不到基础模板 {templatePath}，将无法生成专属配置！", "提示");
+                }
+            }
+            catch (Exception ex)
+            {
+                MessageBox.Show($"生成节点专属配置文件失败: {ex.Message}", "错误");
+            }
+            // ====================================================================
 
             this.DialogResult = true;
             this.Close();

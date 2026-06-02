@@ -1,8 +1,9 @@
 ﻿using System;
 using System.Drawing;
 using System.Threading.Tasks;
-using OpenCvSharp; // 【新增】引入 OpenCV
-using OpenCvSharp.Extensions; // 【新增】引入 OpenCV 与 Bitmap 的转换扩展
+using System.Windows; // 【新增】用于调用界面弹窗 MessageBox
+using OpenCvSharp;
+using OpenCvSharp.Extensions;
 
 namespace ModelHotSwapWorkflow.Models
 {
@@ -15,8 +16,6 @@ namespace ModelHotSwapWorkflow.Models
 
         public override string NodeType => "ImageSource";
         public override Type InputType => null;
-
-        // 【核心修改 1】：把输出类型从 typeof(Bitmap) 改为 typeof(TensorPayload)
         public override Type OutputType => typeof(TensorPayload);
 
         /// <summary>
@@ -24,26 +23,40 @@ namespace ModelHotSwapWorkflow.Models
         /// </summary>
         public override async Task<object> Process(object input)
         {
-            // 1. 如果上游（比如TCP全局指挥官的 HTTP 传图）已经把张量送过来了，直接透传放行！
+            // 1. 如果上游已经把张量送过来了，直接透传放行！
             if (input is TensorPayload payload && payload.BaseTensor != null && !payload.BaseTensor.Empty())
             {
                 return payload;
             }
 
             // 2. 如果没有外部供图，则降级为本地硬盘读取模式
-            return await Task.Run(() =>
+            return await Task.Run<object>(() =>
             {
+                // 【核心修复】：不要直接 throw Exception 导致闪退
+                // 改为在主界面线程弹出友好提示，并返回 null 截断工作流
                 if (string.IsNullOrEmpty(ImagePath) || !System.IO.File.Exists(ImagePath))
-                    throw new Exception($"[图像源节点] 路径无效或文件不存在: {ImagePath}");
+                {
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        MessageBox.Show("未检测到图像！\n请先双击【图像输入节点】选择一张图片，然后再点击运行测试。",
+                                        "缺少图像", MessageBoxButton.OK, MessageBoxImage.Warning);
+                    });
+                    return null;
+                }
 
                 // 高速读取硬盘图像
                 Mat tensor = Cv2.ImRead(ImagePath, ImreadModes.Color);
                 if (tensor.Empty())
                 {
-                    throw new Exception($"[解码失败] OpenCV 无法解析该图像文件: {ImagePath}");
+                    Application.Current.Dispatcher.Invoke(() =>
+                    {
+                        MessageBox.Show($"OpenCV 无法解析该图像文件: {ImagePath}",
+                                        "读取失败", MessageBoxButton.OK, MessageBoxImage.Error);
+                    });
+                    return null;
                 }
 
-                // 【核心修复】：直接装进张量总线包裹发往下一站！彻底抛弃落后的 GlobalGallery！
+                // 直接装进张量总线包裹发往下一站
                 return new TensorPayload { BaseTensor = tensor, RoiResults = null };
             });
         }

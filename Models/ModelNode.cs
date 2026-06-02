@@ -25,7 +25,8 @@ namespace ModelHotSwapWorkflow.Models
 
         public string? ModelPath { get; set; }
         public string? ModelName { get; set; }
-        public string ConfigPath { get; set; } = "model_config.json";
+        // 【替换为这句，让每个节点生成独一无二的配置文件】
+        public string ConfigPath { get; set; } = $"model_config_{Guid.NewGuid():N}.json";
         public List<string> AvailableDataSources { get; set; } = new List<string>();
 
         // ================= 【新增的专利级属性】 =================
@@ -77,14 +78,12 @@ namespace ModelHotSwapWorkflow.Models
                     // 【模式二：特征切片共享（动态计算图手术）】
                     if (SliceRole == ModelSliceRole.BackboneExtractor)
                     {
-                        // 1阶段：在全图上提取特征，并赋给输出总线
                         LogMessage($"[{Name}] 执行计算图切片(模式二)：提炼高维特征张量...");
-                        // 占位提示：此处调用底层 ExtractFeature 接口
-                        // outputFeatureTensor = _modelManager!.ExtractFeature(payload.BaseTensor);
+                        // 【通电】：真实呼叫特征抽取接口
+                        outputFeatureTensor = _modelManager!.ExtractFeature(payload.BaseTensor);
                     }
                     else if (SliceRole == ModelSliceRole.DetectionHead)
                     {
-                        // 2阶段：必须具备特征张量，直接在特征上抠图推理
                         if (payload.FeatureTensor == null || payload.FeatureTensor.IsDisposed)
                             throw new Exception($"[{Name}] 致命错误：模式二 Head 节点未接收到特征张量！");
 
@@ -144,8 +143,6 @@ namespace ModelHotSwapWorkflow.Models
                 {
                     foreach (var box in roiResult.Boxes)
                     {
-                        // 【专利核心点：特征空间映射算法】
-                        // 将像素级坐标缩小 FeatureStride 倍，映射至抽象特征图矩阵中
                         int fX = box.X / FeatureStride;
                         int fY = box.Y / FeatureStride;
                         int fW = box.Width / FeatureStride;
@@ -154,19 +151,25 @@ namespace ModelHotSwapWorkflow.Models
                         var featureRect = ValidateBounds(new Rectangle(fX, fY, fW, fH), payload.FeatureTensor.Width, payload.FeatureTensor.Height);
                         if (featureRect.Width <= 0 || featureRect.Height <= 0) continue;
 
-                        // 在特征张量上切片（避开巨大算力开销）
                         using (Mat featureCrop = new Mat(payload.FeatureTensor, featureRect))
                         {
                             LogMessage($"[{Name}] 特征层裁剪成功，执行 Head 头超高速推理...");
 
-                            // 占位提示：此处调用底层专属 Head 推理接口
-                            // var subResults = _modelManager!.RunHead(featureCrop);
+                            // 【通电】：执行纯张量推理
+                            var subResults = _modelManager!.RunHead(featureCrop);
 
-                            // 注意：Head 模型吐出的坐标需先放大（反向映射），再加上原图全局偏移
-                            // 此处为简写示范，实际根据算法部提供的解码器对齐。
+                            // 【坐标反演】：将特征图里的目标框，平移加上原图大框的起始点
+                            FilterAndMapCoordinates(subResults, finalResults, box.X, box.Y);
                         }
                     }
                 }
+            }
+            else
+            {
+                // 【新增】：如果模式二没收到检测框，就对整张特征图全盘扫描！
+                LogMessage($"[{Name}] 未收到上游 RoI，全盘执行 Head 推理...");
+                var subResults = _modelManager!.RunHead(payload.FeatureTensor);
+                FilterAndMapCoordinates(subResults, finalResults, 0, 0);
             }
         }
 
@@ -181,33 +184,42 @@ namespace ModelHotSwapWorkflow.Models
         {
             foreach (var res in results)
             {
-                // ==========================================================
-                // 1. 可视化类别专注过滤机制
-                // ==========================================================
-                if (!string.IsNullOrEmpty(TargetClassId))
+                var filteredRes = new HMManager.DetectionResult
                 {
-                    // 【需要您根据底层实际情况微调】：
-                    // 因为我看不到您底层 DetectionResult 类的源码，假设缺陷名称存在 res.ClassName 中。
-                    // 请将下面的 .ClassName 替换为您实际存放 "巴片"、"极柱" 等名字的属性（比如 .Label 或 .ClassId）！
-                    // 如果结果不是我们专注的目标，直接跳过，不加入最终结果：
+                    taskType = res.taskType,
+                    ClassDefinitions = res.ClassDefinitions,
+                    Boxes = new List<Rectangle>(),
+                    Scores = new List<float>(),
+                    ClassIds = new List<int>(),
+                    ClassNames = new List<string>()
+                };
 
-                    // if (res.ClassName != TargetClassId) continue; 
-                }
-
-                // ==========================================================
-                // 2. 局部坐标向全局图像坐标系映射投影
-                // ==========================================================
                 if (res.Boxes != null)
                 {
                     for (int i = 0; i < res.Boxes.Count; i++)
                     {
+                        string className = res.ClassNames != null && res.ClassNames.Count > i ? res.ClassNames[i] : "";
+                        int classId = res.ClassIds != null && res.ClassIds.Count > i ? res.ClassIds[i] : -1;
+
+                        // 1. 可视化类别专注过滤机制 (针对单个框进行检查)
+                        if (!string.IsNullOrEmpty(TargetClassId))
+                        {
+                            if (classId.ToString() != TargetClassId && className != TargetClassId)
+                                continue; // 只有这个框不是目标时，跳过这个框
+                        }
+
+                        // 2. 局部坐标向全局图像坐标系映射投影
                         var b = res.Boxes[i];
-                        // 将局部小图里的坐标，加上原图的全局偏移量，还原到大图真实坐标系
-                        res.Boxes[i] = new System.Drawing.Rectangle(b.X + offsetX, b.Y + offsetY, b.Width, b.Height);
+                        filteredRes.Boxes.Add(new System.Drawing.Rectangle(b.X + offsetX, b.Y + offsetY, b.Width, b.Height));
+                        filteredRes.Scores.Add(res.Scores[i]);
+                        filteredRes.ClassIds.Add(classId);
+                        if (res.ClassNames != null) filteredRes.ClassNames.Add(className);
+                        filteredRes.DetectionCount++;
                     }
                 }
 
-                finalResults.Add(res);
+                if (filteredRes.DetectionCount > 0)
+                    finalResults.Add(filteredRes);
             }
         }
 
