@@ -17,8 +17,11 @@ namespace ModelHotSwapWorkflow.Views
         public event Action<NodeControl> OnPositionChanged;
         public event Action<NodeControl> OnSelected;
 
-        // 【新增】：向主大厅报告“我要休眠/唤醒”的事件
+       
         public event Action<NodeControl> OnToggleSleepRequested;
+
+        // 【新增】：向主大厅报告“我要休眠/唤醒”的事件
+        public event Action<NodeControl, double, double> OnDraggedDelta;
 
         private Point dragStart;
         private bool isDragging;
@@ -87,12 +90,28 @@ namespace ModelHotSwapWorkflow.Views
             if (isDragging)
             {
                 Point current = e.GetPosition(this.Parent as Canvas);
-                double left = Canvas.GetLeft(this) + (current.X - dragStart.X);
-                double top = Canvas.GetTop(this) + (current.Y - dragStart.Y);
+
+                // 计算鼠标相对于上一次的位移增量
+                double deltaX = current.X - dragStart.X;
+                double deltaY = current.Y - dragStart.Y;
+
+                double left = Canvas.GetLeft(this) + deltaX;
+                double top = Canvas.GetTop(this) + deltaY;
                 Canvas.SetLeft(this, left);
                 Canvas.SetTop(this, top);
-                dragStart = current;
+
+                // 实时更新业务对象的坐标，防止松手瞬间错位
+                if (ViewModel != null)
+                {
+                    ViewModel.X = left;
+                    ViewModel.Y = top;
+                }
+
+                dragStart = current; // 刷新起点
                 OnPositionChanged?.Invoke(this);
+
+                // 发射增量移动信号！
+                OnDraggedDelta?.Invoke(this, deltaX, deltaY);
             }
         }
 

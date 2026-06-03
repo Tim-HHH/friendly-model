@@ -5,8 +5,9 @@
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         WindowStartupLocation="CenterScreen"
         mc:Ignorable="d"
-        Title="模型热插拔工作流平台 - 工业级 ONNX 推理系统" Height="750" Width="1400"
-        Background="#1E1E1E">
+        Title="模型热插拔工作流平台" Height="750" Width="1400"
+        Background="#1E1E1E"
+        Icon="Assets/logo.ico">
 
     <Window.Resources>
 
@@ -155,10 +156,37 @@
                 </StackPanel>
             </Border>
 
-            <Canvas Grid.Column="1" x:Name="WorkflowCanvas" Background="#1E1E1E" 
-                    AllowDrop="True" Drop="WorkflowCanvas_Drop" 
-                    MouseLeftButtonDown="WorkflowCanvas_MouseLeftButtonDown">
-            </Canvas>
+            <Grid Grid.Column="1">
+
+                <Canvas x:Name="WorkflowCanvas" Background="#1E1E1E" 
+                        ClipToBounds="True" 
+                        AllowDrop="True" Drop="WorkflowCanvas_Drop" 
+                        MouseLeftButtonDown="WorkflowCanvas_MouseLeftButtonDown">
+
+                    <Canvas x:Name="CanvasContent" Width="0" Height="0">
+                        <Canvas.RenderTransform>
+                            <TransformGroup>
+                                <ScaleTransform x:Name="CanvasScale" ScaleX="1" ScaleY="1"/>
+                                <TranslateTransform x:Name="CanvasTranslate" X="0" Y="0"/>
+                            </TransformGroup>
+                        </Canvas.RenderTransform>
+                    </Canvas>
+                </Canvas>
+
+                <Border x:Name="MinimapBorder" HorizontalAlignment="Left" VerticalAlignment="Bottom" 
+                        Width="220" Height="150" Margin="20" Background="#991E1E1E" 
+                        BorderBrush="#555" BorderThickness="2" CornerRadius="5"
+                        MouseLeftButtonDown="Minimap_MouseLeftButtonDown"
+                        MouseMove="Minimap_MouseMove"
+                        MouseLeftButtonUp="Minimap_MouseLeftButtonUp"
+                        MouseLeave="Minimap_MouseLeave"
+                        Cursor="Hand">
+                    <Canvas x:Name="MinimapCanvas" ClipToBounds="True">
+                        <Rectangle x:Name="MinimapViewportRect" Fill="#44007ACC" Stroke="#00A2FF" StrokeThickness="1" IsHitTestVisible="False"/>
+                    </Canvas>
+                </Border>
+
+            </Grid>
 
             <Border Grid.Column="2" Background="#252526" BorderBrush="#333333" BorderThickness="1,0,0,0">
                 <Grid>
