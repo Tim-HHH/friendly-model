@@ -577,7 +577,7 @@ namespace ModelHotSwapWorkflow
                 RequestMinimapUpdate();
             };
         }
-
+         
         private void AddNode(string nodeType, double x, double y)
         {
             NodeBase node = null;

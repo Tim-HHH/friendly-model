@@ -177,7 +177,7 @@ namespace HMManager
             else
             {
                 // 如果遇到其他奇葩维度，直接拦截报错，防止系统崩溃
-                throw new Exception($"张量维度异常！期望3维或4维空间特征图，但实际收到 {dims.Length} 维数据。");
+                 new Exception($"张量维度异常！期望3维或4维空间特征图，但实际收到 {dims.Length} 维数据。");
             }
 
             // 【核心专利点】：ONNX 输出是 [C, H, W] 的层叠矩阵，
@@ -196,7 +196,6 @@ namespace HMManager
                     }
                 }
             }
-
             System.Runtime.InteropServices.Marshal.Copy(interleaved, 0, featureMat.Data, interleaved.Length);
             return featureMat;
         }
@@ -229,16 +228,14 @@ namespace HMManager
                         }
                     }
                 }
-
                 try
                 {
-                    // 【关键探针】：扫描这个 Head 模型到底需要几个输入接口？
+                    // 扫描这个 Head 模型到底需要几个输入接口？
                     if (onnx_infer.InputMetadata.Count > 1)
                     {
                         string needed = string.Join("\n - ", onnx_infer.InputMetadata.Keys);
                         throw new Exception($"架构阻断！此 Head 模型实际上需要 {onnx_infer.InputMetadata.Count} 个输入端：\n - {needed}\n\n原因：YOLO 存在跳跃连接(FPN)，切割点太浅导致藕断丝连。当前的单一张量总线无法同时传输多个特征！");
                     }
-
                     string inputName = onnx_infer.InputMetadata.Keys.First();
                     var inputTensor = new DenseTensor<float>(planar, new[] { 1, C, H, W });
 
